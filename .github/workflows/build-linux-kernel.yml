@@ -102,7 +102,7 @@ jobs:
 
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-amd
           echo "output kernel file ${KERNEL_PKG}"
           cp ../*.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
@@ -213,7 +213,7 @@ jobs:
 
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-intel
           echo "output kernel file ${KERNEL_PKG}"
           cp ../*.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
