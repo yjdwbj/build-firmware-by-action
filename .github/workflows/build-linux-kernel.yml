@@ -104,7 +104,7 @@ jobs:
           make prepare
           make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
           echo "output kernel file ${KERNEL_PKG}"
-          cp *.deb ${{ github.workspace }}/
+          cp ../*.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
@@ -215,7 +215,7 @@ jobs:
           make prepare
           make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
           echo "output kernel file ${KERNEL_PKG}"
-          cp *.deb ${{ github.workspace }}/
+          cp ../*.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
