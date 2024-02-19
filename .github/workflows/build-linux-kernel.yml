@@ -40,7 +40,6 @@ jobs:
           sudo -E apt-get -qq install build-essential wget git tree libelf-dev debmake debhelper -y
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
-          sudo -E apt-get -qq build-dep linux
           sudo timedatectl set-timezone "$TZ"
           sudo mkdir -p ${WORK_DIR}
           sudo chown $USER:$GROUPS ${WORK_DIR}
@@ -151,7 +150,6 @@ jobs:
           sudo -E apt-get -qq install build-essential wget git tree libelf-dev debmake debhelper -y
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
-          sudo -E apt-get -qq build-dep linux
           sudo timedatectl set-timezone "$TZ"
           sudo mkdir -p ${WORK_DIR}
           sudo chown $USER:$GROUPS ${WORK_DIR}
