@@ -111,7 +111,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: kernel-${{ env.LOCALVERSION }}
-          path: ${{ github.workspace }}/${{env.KERNEL_PKG}}
+          path: ${{ github.workspace }}/*.deb
 
       - name: Generate release tag
         id: tag
@@ -128,7 +128,7 @@ jobs:
         with:
           tag_name: ${{ env.LOCALVERSION }}
           body_path: release.txt
-          files: ${{ github.workspace }}/${{env.KERNEL_PKG}}
+          files: ${{ github.workspace }}/*.deb
 
   # This workflow contains a single job called "build"
   build_intel_kernel:
@@ -222,7 +222,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: kernel-${{ env.LOCALVERSION }}
-          path: ${{ github.workspace }}/${{env.KERNEL_PKG}}
+          path: ${{ github.workspace }}/*.deb
 
       - name: Generate release tag
         id: tag
@@ -240,7 +240,7 @@ jobs:
         with:
           tag_name: ${{ env.LOCALVERSION }}
           body_path: release.txt
-          files: ${{ github.workspace }}/${{env.KERNEL_PKG}}
+          files: ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
         uses: dev-drprasad/delete-older-releases@v0.1.0
