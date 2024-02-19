@@ -97,17 +97,14 @@ jobs:
           make amd_defconfig
           scripts/config --disable SYSTEM_REVOCATION_KEYS
           scripts/config --disable SYSTEM_TRUSTED_KEYS
+          scripts/config --disable DEBUG_INFO
+          scripts/config --enable DEBUG_INFO_NONE
+
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make ${MAKE_OPTS}
-          make ${MAKE_OPTS} modules
-          make ${MAKE_OPTS} install
-          make ${MAKE_OPTS} modules_install
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
           echo "output kernel file ${KERNEL_PKG}"
-          cd ${KER_INSTALL_DIR}
-          tar -cvzf ../${KERNEL_PKG} lib/modules/* boot/* --owner=0 --group=0
-          cd ../
-          cp ${KERNEL_PKG} ${{ github.workspace }}/
+          cp *.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
@@ -210,17 +207,15 @@ jobs:
           make intel_defconfig
           scripts/config --disable SYSTEM_REVOCATION_KEYS
           scripts/config --disable SYSTEM_TRUSTED_KEYS
+          scripts/config --disable DEBUG_INFO
+          scripts/config --enable DEBUG_INFO_NONE
+
+
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make ${MAKE_OPTS}
-          make ${MAKE_OPTS} modules
-          make ${MAKE_OPTS} install
-          make ${MAKE_OPTS} modules_install
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
           echo "output kernel file ${KERNEL_PKG}"
-          cd ${KER_INSTALL_DIR}
-          tar -cvzf ../${KERNEL_PKG} lib/modules/* boot/* --owner=0 --group=0
-          cd ../
-          cp ${KERNEL_PKG} ${{ github.workspace }}/
+          cp *.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
