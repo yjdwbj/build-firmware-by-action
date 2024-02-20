@@ -11,7 +11,7 @@
 name: Build OpenWrt for newifi y1s
 
 on:
-  push:
+  # push:
   repository_dispatch:
   workflow_dispatch:
   schedule:
