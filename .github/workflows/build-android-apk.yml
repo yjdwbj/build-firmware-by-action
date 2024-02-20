@@ -30,17 +30,6 @@ jobs:
     name: Native Build (LibCore)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Fetch Status
-        run: git submodule status library/core > libcore_status
-      - name: LibCore Cache
-        id: cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            app/libs/libcore.aar
-          key: ${{ hashFiles('.github/workflows/*', 'bin/lib/core/*', 'libcore_status') }}
       - name: Get latest go version
         id: version
         if: steps.cache.outputs.cache-hit != 'true'
