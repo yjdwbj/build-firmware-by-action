@@ -36,7 +36,7 @@ jobs:
     - name: setup jdk
       uses: actions/setup-java@v1
       with:
-        java-version: 17
+        java-version: 11
 
     - name: Initialization environment
       env:
@@ -72,7 +72,7 @@ jobs:
         echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
-        sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
+        # sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
         ./gradlew assembleRelease
         cp build/outputs/apk/release/*.apk ${{ github.workspace }}/
 
