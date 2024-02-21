@@ -41,7 +41,10 @@ jobs:
       uses: actions/setup-java@v4
       with:
         java-version: '21'
-        distribution: 'temurin'
+        cache: 'gradle'
+        cache-dependency-path: | # optional
+          sub-project/*.gradle*
+          sub-project/**/gradle-wrapper.properties
     - run: java HelloWorldApp.java
 
     - name: Setup Android SDK
@@ -87,7 +90,7 @@ jobs:
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
         # sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
-        ./gradlew build
+        ./gradlew build --no-daemon
         ./gradlew assembleRelease
         cp build/outputs/apk/release/*.apk ${{ github.workspace }}/
 
