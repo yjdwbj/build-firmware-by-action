@@ -86,6 +86,7 @@ jobs:
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
         sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
+        ./gradlew build
         ./gradlew assembleRelease
         cp build/outputs/apk/release/*.apk ${{ github.workspace }}/
 
