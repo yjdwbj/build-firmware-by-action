@@ -26,47 +26,24 @@ env:
   TZ: Asia/Shanghai
 
 jobs:
-  libcore:
-    name: Native Build (LibCore)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get latest go version
-        id: version
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          echo ::set-output name=go_version::$(curl -s https://raw.githubusercontent.com/actions/go-versions/main/versions-manifest.json | grep -oE '"version": "[0-9]{1}.[0-9]{1,}(.[0-9]{1,})?"' | head -1 | cut -d':' -f2 | sed 's/ //g; s/"//g')
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
-          # Bug: https://github.com/golang/go/issues/58426
-          # go-version: ${{ steps.version.outputs.go_version }}
-          go-version: 1.19.8
-      - name: Gradle cache
-        uses: actions/cache@v3
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
-          path: ~/.gradle
-          key: native-${{ hashFiles('**/*.gradle.kts') }}
-      - name: Native Build
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          echo "sdk.dir=${ANDROID_HOME}" > local.properties
-          echo "ndk.dir=${ANDROID_HOME}/ndk/25.0.8775105" >> local.properties
-          ./run lib core
-
   build:
     runs-on: ubuntu-latest
-    needs:
-      - libcore
     steps:
     - name: Checkout
       uses: actions/checkout@main
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.20' # The Go version to download (if necessary) and use.
+    - run: go version
 
     - name: setup jdk
       uses: actions/setup-java@v1
       with:
         java-version: 11
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
 
     - name: Initialization environment
       env:
