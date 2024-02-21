@@ -45,7 +45,6 @@ jobs:
         cache-dependency-path: | # optional
           sub-project/*.gradle*
           sub-project/**/gradle-wrapper.properties
-    - run: java HelloWorldApp.java
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
