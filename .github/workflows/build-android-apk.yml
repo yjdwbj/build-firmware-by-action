@@ -42,10 +42,6 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
-        cache: 'gradle'
-        cache-dependency-path: | # optional
-          sub-project/*.gradle*
-          sub-project/**/gradle-wrapper.properties
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
@@ -89,7 +85,7 @@ jobs:
         echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
-        # sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
+        sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
         ./gradlew build --no-daemon
         ./gradlew assembleRelease
         cp build/outputs/apk/release/*.apk ${{ github.workspace }}/
