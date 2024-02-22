@@ -105,14 +105,14 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kernel-${{ env.LOCALVERSION }}
+          name: kernel-riotboard-${{ env.LOCALVERSION }}.deb
           path: ${{ github.workspace }}/*.deb
 
       - name: Generate release tag
         id: tag
         run: |
           echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-          echo "Read change logs in ChangeLog-${F_VER}" > release.txt
+          echo "RiotBoard linux kernel ChangeLog-${F_VER}" > release.txt
           echo "::set-output name=status::success"
 
       - name: Upload firmware to release
@@ -121,7 +121,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.LOCALVERSION }}
+          tag_name: kernel-riotboard-${{ env.LOCALVERSION }}
           body_path: release.txt
           files: ${{ github.workspace }}/*.deb
 
