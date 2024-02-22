@@ -117,6 +117,12 @@ jobs:
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         echo "ndk.dir=${ANDROID_HOME}/ndk/25.0.8775105" >> local.properties
         export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
+        cat > bin/init/action/library.sh <<EOF
+        #!/bin/bash
+        git submodule update --init 'library/core/'
+        git submodule update --init 'external/'
+        <EOF
+        chmod +x bin/init/action/library.sh
         ./run init action library
         ./gradlew app:assembleOssRelease
 
