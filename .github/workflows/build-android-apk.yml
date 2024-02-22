@@ -107,19 +107,17 @@ jobs:
         cd SagerNet
         chmod +x ./gradlew
 
-    - name: Build Project
+    - name: Build Release APK
       run: |
         echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
         sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
-        ./gradlew build --no-daemon
-
-    - name: Build Release APK
-      run: |
-        cd SagerNet
-        ./gradlew assembleRelease
-        cp build/outputs/apk/release/*.apk ${{ github.workspace }}/
+        echo "sdk.dir=${ANDROID_HOME}" > local.properties
+        echo "ndk.dir=${ANDROID_HOME}/ndk/25.0.8775105" >> local.properties
+        export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
+        ./run init action library
+        ./gradlew app:assembleOssRelease
 
     - uses: actions/upload-artifact@v3
       with:
