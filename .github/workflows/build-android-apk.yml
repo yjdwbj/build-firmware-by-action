@@ -114,6 +114,7 @@ jobs:
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
         sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
+        echo "org.gradle.workers.max=4" >> gradle.properties
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         echo "ndk.dir=${ANDROID_HOME}/ndk/25.0.8775105" >> local.properties
         export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
@@ -125,6 +126,7 @@ jobs:
 
         chmod +x bin/init/action/library.sh
         ./run init action library
+        ./gradlew build --no-daemon
         ./gradlew app:assembleOssRelease
 
     - uses: actions/upload-artifact@v3
