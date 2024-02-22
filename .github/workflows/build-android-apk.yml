@@ -121,7 +121,8 @@ jobs:
         #!/bin/bash
         git submodule update --init 'library/core/'
         git submodule update --init 'external/'
-        <EOF
+        EOF
+
         chmod +x bin/init/action/library.sh
         ./run init action library
         ./gradlew app:assembleOssRelease
