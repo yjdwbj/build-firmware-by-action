@@ -129,7 +129,7 @@ jobs:
         chmod +x bin/init/action/library.sh
         git submodule update --init 'app/'
         ./run init action library
-        ./gradlew build --no-daemon
+        ./gradlew build  --continue --no-daemon --warning-mode=all
         ./gradlew app:assembleOssRelease
 
     - uses: actions/upload-artifact@v3
