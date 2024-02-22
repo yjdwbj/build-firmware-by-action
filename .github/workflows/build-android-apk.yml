@@ -123,7 +123,7 @@ jobs:
         cat > bin/init/action/library.sh <<EOF
         #!/bin/bash
         git submodule update --init 'library/core/'
-        git submodule update --init 'external/'
+        # git submodule update --init 'external/'
         EOF
 
         chmod +x bin/init/action/library.sh
