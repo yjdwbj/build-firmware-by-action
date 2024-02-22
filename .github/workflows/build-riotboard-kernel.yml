@@ -101,12 +101,17 @@ jobs:
           make prepare
           make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
           echo "output kernel file ${KERNEL_PKG}"
+          cp arch/arm/boot/zImage ${{ github.workspace }}/
+          cp arch/arm/boot/dts/nxp/imx/imx6dl-riotboard.dtb ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: kernel-riotboard-${{ env.LOCALVERSION }}.deb
-          path: ${{ github.workspace }}/*.deb
+          name: kernel-riotboard-${{ env.LOCALVERSION }}
+          path: |
+            ${{ github.workspace }}/*.deb
+            ${{ github.workspace }}/zImage
+            ${{ github.workspace }}/imx6dl-riotboard.dtb
 
       - name: Generate release tag
         id: tag
@@ -123,5 +128,8 @@ jobs:
         with:
           tag_name: kernel-riotboard-${{ env.LOCALVERSION }}
           body_path: release.txt
-          files: ${{ github.workspace }}/*.deb
+          files: |
+            ${{ github.workspace }}/*.deb
+            ${{ github.workspace }}/zImage
+            ${{ github.workspace }}/imx6dl-riotboard.dtb
 
