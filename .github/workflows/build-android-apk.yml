@@ -11,11 +11,11 @@
 name: Build Android Apk
 
 on:
-  push:
+  # push:
   repository_dispatch:
   workflow_dispatch:
-  schedule:
-    - cron: 1 20 * * *
+  # schedule:
+  #   - cron: 1 20 * * *
 
 env:
   REPO_URL: https://github.com/SagerNet/SagerNet

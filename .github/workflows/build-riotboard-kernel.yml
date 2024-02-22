@@ -78,18 +78,12 @@ jobs:
           echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
           LOCALVERSION=$(date +%Y%m%d)-lcy
           KER_FNAME="linux-${F_VER}"
-          KER_INSTALL_DIR=${{ env.WORK_DIR }}/${LOCALVERSION}/install
-          KER_BUILD_DIR=${{ env.WORK_DIR }}/${KER_FNAME}
+
           KERNEL_PKG=kernel-riotboard-${LOCALVERSION}.tar.gz2
           echo "KERNEL_PKG=kernel-riotboard-${LOCALVERSION}.tar.gz2" >> $GITHUB_ENV
 
-          MAKE_OPTS="-j`nproc` \
-                     LOCALVERSION=${LOCALVERSION} \
-                     EXTRAVERSION="" \
-                     INSTALL_PATH=${KER_INSTALL_DIR}/boot \
-                     INSTALL_MOD_PATH=${KER_INSTALL_DIR}"
 
-          [ -e $CONFIG_AMD_FILE ] && mv $CONFIG_AMD_FILE ${KER_BUILD_DIR}/arch/arm/configs/riotboard_defconfig
+          [ -e $DEFCONFIG_FILE ] && mv $DEFCONFIG_FILE ${KER_BUILD_DIR}/arch/arm/configs/riotboard_defconfig
           cd ${KER_BUILD_DIR}
 
           make riotboard_defconfig
