@@ -109,6 +109,8 @@ jobs:
         chmod +x ./gradlew
 
     - name: Build Release APK
+      env:
+          BUILD_PLUGIN: none
       run: |
         echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
         LOCALVERSION=$(date +%Y%m%d)-lcy
@@ -125,6 +127,7 @@ jobs:
         EOF
 
         chmod +x bin/init/action/library.sh
+        git submodule update --init 'app/'
         ./run init action library
         ./gradlew build --no-daemon
         ./gradlew app:assembleOssRelease
