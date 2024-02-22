@@ -19,7 +19,7 @@ env:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build_amd_kernel:
+  build:
     name: Build Linux kernel for RIotBoard
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -99,10 +99,8 @@ jobs:
 
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-amd
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}
           echo "output kernel file ${KERNEL_PKG}"
-          cp ../*.deb ${{ github.workspace }}/
-          cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
       - uses: actions/upload-artifact@v3
