@@ -125,7 +125,6 @@ jobs:
           sed -i 's/CROSS_COMPILE :=/CROSS_COMPILE ?=/g' Makefile
           make -j `nproc`
           cp 88XXau.ko ${{ github.workspace }}/
-          depmod --basedir=${work_dir} ${_KVER}
 
       - uses: actions/upload-artifact@v4
         with:
