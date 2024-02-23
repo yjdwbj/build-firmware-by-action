@@ -75,12 +75,14 @@ jobs:
           CROSS_COMPILE: arm-linux-gnueabi-
         run: |
           echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
+
           LOCALVERSION=$(date +%Y%m%d)-lcy
           KER_FNAME="linux-${F_VER}"
           KER_INSTALL_DIR=${LOCALVERSION}/install
           KER_BUILD_DIR=${KER_FNAME}
           KERNEL_PKG=kernel-riotboard-${LOCALVERSION}.tar.gz2
           echo "KERNEL_PKG=kernel-riotboard-${LOCALVERSION}.tar.gz2" >> $GITHUB_ENV
+          echo "KER_BUILD_DIR=${KER_FNAME}" >> $GITHUB_ENV
 
           MAKE_OPTS="-j`nproc` \
                      LOCALVERSION=${LOCALVERSION} \
@@ -105,11 +107,30 @@ jobs:
           cp arch/arm/boot/dts/nxp/imx/imx6dl-riotboard.dtb ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
 
+      - name: build rtl8812au
+        env:
+          ARCH: arm
+          CROSS_COMPILE: arm-linux-gnueabi-
+          KERNEL_SRC: ${{env.KER_BUILD_DIR}}
+          KVER: ${{env.F_VER}}
+          KSRC: ${{env.KER_BUILD_DIR}}
+        run: |
+          git clone https://github.com/aircrack-ng/rtl8812au.git --depth=1
+          cd rtl8812au
+          sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n/g' Makefile
+          sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = y/g' Makefile
+          sed -i 's/KSRC :=/KSRC ?=/g' Makefile
+          sed -i 's/CROSS_COMPILE :=/CROSS_COMPILE ?=/g' Makefile
+          make -j `nproc`
+          cp 88XXau.ko ${{ github.workspace }}/
+          depmod --basedir=${work_dir} ${_KVER}
+
       - uses: actions/upload-artifact@v4
         with:
           name: kernel-riotboard-${{ env.LOCALVERSION }}
           path: |
             ${{ github.workspace }}/*.deb
+            ${{ github.workspace }}/*.ko
             ${{ github.workspace }}/zImage
             ${{ github.workspace }}/imx6dl-riotboard.dtb
 
@@ -130,6 +151,7 @@ jobs:
           body_path: riotboard.txt
           files: |
             ${{ github.workspace }}/*.deb
+            ${{ github.workspace }}/*.ko
             ${{ github.workspace }}/zImage
             ${{ github.workspace }}/imx6dl-riotboard.dtb
 
