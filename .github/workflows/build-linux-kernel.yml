@@ -74,6 +74,9 @@ jobs:
           tar xf ${KER_TAR}
 
       - name: build kernel
+        env:
+          KBUILD_BUILD_USER: "yjdwbj"
+          KBUILD_BUILD_HOST: "gmail.com"
         run: |
           echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
           LOCALVERSION=$(date +%Y%m%d)-lcy
@@ -184,6 +187,9 @@ jobs:
           tar xf ${KER_TAR}
 
       - name: build kernel
+        env:
+          KBUILD_BUILD_USER: "yjdwbj"
+          KBUILD_BUILD_HOST: "gmail.com"
         run: |
           echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
           LOCALVERSION=$(date +%Y%m%d)-lcy
