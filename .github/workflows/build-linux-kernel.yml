@@ -129,7 +129,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.LOCALVERSION }}
+          tag_name: linux-kernel-${{ env.LOCALVERSION }}
           body_path: release.txt
           files: ${{ github.workspace }}/*.deb
 
@@ -227,15 +227,14 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kernel-${{ env.LOCALVERSION }}
+          name: pc-kernel-${{ env.LOCALVERSION }}
           path: ${{ github.workspace }}/*.deb
 
       - name: Generate release tag
         id: tag
         run: |
           echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-          touch release.txt
-          echo "Read change logs in ChangeLog-${F_VER}" >> release.txt
+          echo "Read change logs in ChangeLog-${F_VER}" > pc-kernel-release.txt
           echo "::set-output name=status::success"
 
       - name: Upload firmware to release
@@ -244,8 +243,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.tag.outputs.status == 'success'
         with:
-          tag_name: ${{ env.LOCALVERSION }}
-          body_path: release.txt
+          tag_name: linux-kernel-${{ env.LOCALVERSION }}
+          body_path: pc-kernel-release.txt
           files: ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
