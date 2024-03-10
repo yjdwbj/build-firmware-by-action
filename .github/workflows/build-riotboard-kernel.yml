@@ -50,6 +50,7 @@ jobs:
           KBUILD_BUILD_HOST: "gmail.com"
         run: |
           . ${BUILD_SCRIPT}
+          echo "LOCALVERSION=${LOCALVERSION}" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v4
         with:
@@ -70,8 +71,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: kernel-riotboard-${{ env.LOCALVERSION }}
-          files: ${{ github.workspace }}/*.deb
+          tag_name: kernel-riotboard-${{ env.LOCALVERSION }}
+          body_path: release.txt
+          files: |
+            ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
         uses: dev-drprasad/delete-older-releases@v0.1.0
