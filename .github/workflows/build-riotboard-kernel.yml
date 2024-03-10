@@ -50,6 +50,11 @@ jobs:
           KBUILD_BUILD_HOST: "gmail.com"
         run: |
           . ${BUILD_SCRIPT}
+          echo "pwd is: ${PWD}, workspace:  ${{github.workspace}}"
+          ls
+          cd ../
+          echo "----------------"
+          ls
           cp *.deb ${{ github.workspace }}/
 
       - uses: actions/upload-artifact@v4

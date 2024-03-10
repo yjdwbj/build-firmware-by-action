@@ -128,7 +128,7 @@ function build_kernel_deb() {
     cp .config ${INSTALL_MOD_PATH}/boot/config-${UR}
     cp System.map ${INSTALL_MOD_PATH}/boot/System.map-${UR}
     build_88XXau ${INSTALL_MOD_PATH}
-    echo "Build deb at $(pwd), github workspace is: ${{ github.workspace }}"
+    echo "Build deb at $(pwd), github workspace is: ${workspace }"
     dpkg-deb --root-owner-group -b -Znone ${INSTALL_MOD_PATH} ../
     # systemd-nspawn_exec dpkg -i /opt/build/${kernel_deb}
 }
