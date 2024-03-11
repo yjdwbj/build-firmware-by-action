@@ -73,6 +73,16 @@ Description: Library platform for building proxies in golang
  own computer network. It secures your network connections and thus
  protects your privacy.
 EOF
+   cat > ${deb_dir}/DEBIAN/preinst << EOF
+cp /etc/v2ray/config.json /etc/v2ray/config.json.old
+EOF
+
+   cat > ${deb_dir}/DEBIAN/postinst << EOF
+[ -f /etc/v2ray/config.json.old ] && mv /etc/v2ray/config.json.old /etc/v2ray/config.json
+EOF
+   chmod +x ${deb_dir}/DEBIAN/preinst
+   chmod +x ${deb_dir}/DEBIAN/postinst
+
    sh -c "cd '${deb_dir}'; find . -type f ! -path './DEBIAN/*' -printf '%P\0' \
 		| xargs -r0 md5sum > DEBIAN/md5sums"
    [ ${ARCH} == "arm" ] && sed -i '/^Architecture:/!b;cArchitecture: armhf' ${deb_dir}/DEBIAN/control
