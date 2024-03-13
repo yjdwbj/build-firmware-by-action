@@ -8,7 +8,7 @@ on:
   push:
   workflow_dispatch:
   schedule:
-    - cron: 2 20 * * *
+    - cron: 2 26 * * *
 
 env:
   REPO_BRANCH: main
