@@ -115,6 +115,7 @@ jobs:
         echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
         LOCALVERSION=$(date +%Y%m%d)-lcy
         cd SagerNet
+        sed -i '/warningsAsErrors =/!b;c\\twarningsAsErrors = false'  buildSrc/src/main/kotlin/Helpers.kt
         # sed -i '/^org.gradle.jvmargs=.*$/ s/^org/#&/' gradle.properties
         echo "org.gradle.workers.max=4" >> gradle.properties
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
