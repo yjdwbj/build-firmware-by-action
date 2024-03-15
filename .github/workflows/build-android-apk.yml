@@ -11,7 +11,7 @@
 name: Build Android Apk
 
 on:
-  # push:
+  push:
   repository_dispatch:
   workflow_dispatch:
   # schedule:
