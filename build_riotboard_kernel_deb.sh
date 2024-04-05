@@ -17,7 +17,44 @@ repo_dir="${shell_dir}"
 
 [ ! -d ${repo_dir} ] && mkdir -pv ${repo_dir}
 
-function create_debian_folder (){
+build_kernel_headers() {
+    pdir=$1
+	version=${2}
+
+    [ -d ${pdir} ] && rm -rf ${pdir}
+    mkdir -pv ${pdir}/{DEBIAN,usr}
+
+    cat > ${pdir}/DEBIAN/control << EOF
+Package: linux-headers-${version}
+Version: ${BUILD_KER_VER}
+Source: linux-${BUILD_KER_VER}
+Kernel-Version: ${BUILD_KER_VER}
+Kernel-Version-Family: ${version}
+Installed-Size: 0
+Architecture: ${ARCH}
+Maintainer: github.com/yjdwbj <yjdwbj@gmail.com>
+Section: kernel
+Priority: optional
+Homepage: https://www.kernel.org/
+Description: Linux kernel headers for ${version} on ${ARCH}
+ This package provides kernel header files for ${version} on ${ARCH}
+ .
+ This is useful for people who need to build external modules
+
+EOF
+    cat > ${pdir}/DEBIAN/postinst <<EOF
+#!/bin/bash
+#
+[ ! -d /usr/lib/modules/$version ] && mkdir -p /usr/lib/modules/${version}
+ln -s /usr/src/linux-headers-$version $pdir/lib/modules/$version/build
+exit 0
+EOF
+    chmod 755 ${pdir}/DEBIAN/postinst
+
+}
+
+
+create_debian_folder (){
     pdir=${1}
     [ -d ${pdir} ] && rm -rf ${pdir}
     local_ver=${2}
@@ -130,6 +167,15 @@ function build_kernel_deb() {
     build_88XXau ${INSTALL_MOD_PATH}
     echo "Build deb at ${PWD}, github workspace is: ${workspace}"
     dpkg-deb --root-owner-group -b -Znone ${INSTALL_MOD_PATH} ../
+
+
+    build_kernel_headers ${INSTALL_MOD_PATH} ${UR}
+    INSTALL_HDR_PATH=${INSTALL_MOD_PATH}/usr  make headers_install
+    sh -c "cd '${INSTALL_MOD_PATH}'; find . -type f ! -path './DEBIAN/*' -printf '%P\0' \
+		| xargs -r0 md5sum > DEBIAN/md5sums"
+    echo "Package linux header"
+    dpkg-deb --root-owner-group -b -Znone ${INSTALL_MOD_PATH} ../
+
     # systemd-nspawn_exec dpkg -i /opt/build/${kernel_deb}
 }
 
