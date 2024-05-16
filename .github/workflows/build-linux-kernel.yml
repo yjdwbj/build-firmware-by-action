@@ -25,13 +25,13 @@ jobs:
     name: Build Linux kernel for AMD CPU
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@main
         with:
           ref: ${{ github.ref }}
+
       - name: Initialization environment
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -45,7 +45,7 @@ jobs:
           sudo chown $USER:$GROUPS ${WORK_DIR}
 
       - name: download kernel source
-        working-directory: ${{ env.WORK_DIR }}
+        id: get_kernel_version
         run: |
           vlist=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9].[0-9]\{1,2\}$')
           maxn=0
@@ -78,11 +78,13 @@ jobs:
           KBUILD_BUILD_USER: "yjdwbj"
           KBUILD_BUILD_HOST: "gmail.com"
         run: |
+          echo "workspace is: ${PWD}"
+          tree -L 2 -d
           echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
           LOCALVERSION=$(date +%Y%m%d)-lcy
-          KER_FNAME="linux-${F_VER}"
-          KER_INSTALL_DIR=${{ env.WORK_DIR }}/${LOCALVERSION}/install
-          KER_BUILD_DIR=${{ env.WORK_DIR }}/${KER_FNAME}
+          KER_FNAME="linux-${{env.F_VER}}"
+          KER_INSTALL_DIR=${LOCALVERSION}/install
+          KER_BUILD_DIR=${KER_FNAME}
           KERNEL_PKG=kernel-amd-${LOCALVERSION}.tar.gz2
           echo "KERNEL_PKG=kernel-amd-${LOCALVERSION}.tar.gz2" >> $GITHUB_ENV
 
@@ -107,9 +109,8 @@ jobs:
           make prepare
           make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-amd
           echo "output kernel file ${KERNEL_PKG}"
-          cp ../*.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
-          wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
+          wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{env.F_VER}}"
 
       - uses: actions/upload-artifact@v3
         with:
@@ -120,7 +121,7 @@ jobs:
         id: tag
         run: |
           echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-          echo "Read change logs in ChangeLog-${F_VER}" > release.txt
+          echo "Read change logs in ChangeLog-${{ env.F_VER }}" > release.txt
           echo "::set-output name=status::success"
 
       - name: Upload firmware to release
@@ -129,7 +130,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: linux-kernel-${{ env.LOCALVERSION }}
+          tag_name: linux-x86_64-kernel-package
           body_path: release.txt
           files: ${{ github.workspace }}/*.deb
 
@@ -138,7 +139,6 @@ jobs:
     name: Build Linux kernel for Intel CPU
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -158,7 +158,7 @@ jobs:
           sudo chown $USER:$GROUPS ${WORK_DIR}
 
       - name: download kernel source
-        working-directory: ${{ env.WORK_DIR }}
+        id: get_kernel_version
         run: |
           vlist=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9].[0-9]\{1,2\}$')
           maxn=0
@@ -193,9 +193,9 @@ jobs:
         run: |
           echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
           LOCALVERSION=$(date +%Y%m%d)-lcy
-          KER_FNAME="linux-${F_VER}"
-          KER_INSTALL_DIR=${{ env.WORK_DIR }}/${LOCALVERSION}/install
-          KER_BUILD_DIR=${{ env.WORK_DIR }}/${KER_FNAME}
+          KER_FNAME="linux-${{ env.F_VER }}"
+          KER_INSTALL_DIR=${LOCALVERSION}/install
+          KER_BUILD_DIR=${KER_FNAME}
           KERNEL_PKG=kernel-intel-${LOCALVERSION}.tar.gz2
           echo "KERNEL_PKG=kernel-intel-${LOCALVERSION}.tar.gz2" >> $GITHUB_ENV
 
@@ -221,9 +221,8 @@ jobs:
           make prepare
           make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-intel
           echo "output kernel file ${KERNEL_PKG}"
-          cp ../*.deb ${{ github.workspace }}/
           cd ${{ github.workspace }}/
-          wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${F_VER}"
+          wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{ env.F_VER }}"
 
       - uses: actions/upload-artifact@v3
         with:
@@ -234,7 +233,7 @@ jobs:
         id: tag
         run: |
           echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-          echo "Read change logs in ChangeLog-${F_VER}" > pc-kernel-release.txt
+          echo "Read change logs in ChangeLog-${{ env.F_VER }}" > release.txt
           echo "::set-output name=status::success"
 
       - name: Upload firmware to release
@@ -243,8 +242,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.tag.outputs.status == 'success'
         with:
-          tag_name: linux-kernel-${{ env.LOCALVERSION }}
-          body_path: pc-kernel-release.txt
+          tag_name: linux-x86_64-kernel-package
+          body_path: release.txt
           files: ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
