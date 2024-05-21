@@ -170,6 +170,7 @@ function build_kernel_deb() {
 
 
     build_kernel_headers ${INSTALL_MOD_PATH} ${UR}
+    cd ${repo_dir}/linux-${BUILD_KER_VER}
     INSTALL_HDR_PATH=${INSTALL_MOD_PATH}/usr  make headers_install
     sh -c "cd '${INSTALL_MOD_PATH}'; find . -type f ! -path './DEBIAN/*' -printf '%P\0' \
 		| xargs -r0 md5sum > DEBIAN/md5sums"

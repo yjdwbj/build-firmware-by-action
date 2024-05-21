@@ -100,10 +100,12 @@ jobs:
         echo "::set-output name=status::success"
         tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
         DEVICE_NAME=${tdev##DEVICE_}
+        FILE_DATE=_$(date +"%Y%m%d%H%M")
+        GIT_REV=_$(git rev-parse --short HEAD)
         echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-        echo "GIT_REV=_$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${{env.GIT_REV}}${{env.FILE_DATE}}.tar.gz" >> $GITHUB_ENV
+        echo "FILE_DATE=${FILE_DATE}" >> $GITHUB_ENV
+        echo "GIT_REV=${GIT_REV}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${GIT_REV}${FILE_DATE}.tar.gz" >> $GITHUB_ENV
 
     - name: Check space usage
       run: |
@@ -222,10 +224,12 @@ jobs:
         echo "::set-output name=status::success"
         tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
         DEVICE_NAME=${tdev##DEVICE_}
+        FILE_DATE=_$(date +"%Y%m%d%H%M")
+        GIT_REV=_$(git rev-parse --short HEAD)
         echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-        echo "GIT_REV=_$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${{env.GIT_REV}}${{env.FILE_DATE}}.tar.gz" >> $GITHUB_ENV
+        echo "FILE_DATE=${FILE_DATE}" >> $GITHUB_ENV
+        echo "GIT_REV=${GIT_REV}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${GIT_REV}${FILE_DATE}.tar.gz" >> $GITHUB_ENV
 
     - name: Check space usage
       run: |
