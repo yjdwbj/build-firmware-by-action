@@ -60,7 +60,7 @@ EOF
 
    local_ver=$(git describe --abbrev=0 --tags | tr -d -c .0-9)
    cat > ${deb_dir}/DEBIAN/control << EOF
-Package: v2ray-core-$(date +%Y%m%d)
+Package: v2ray-core-${local_ver}
 Version: ${local_ver}
 Installed-Size: 0
 Architecture: ${ARCH}

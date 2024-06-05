@@ -27,7 +27,7 @@ function build_debpkg(){
 
      local_ver=$(cat VERSION.txt)
      cat > ${deb_dir}/DEBIAN/control << EOF
-Package: tailscale-git-$(date +%Y%m%d)
+Package: tailscale-git-${local_ver}
 Version: ${local_ver}
 Installed-Size: 0
 Architecture: ${ARCH}
