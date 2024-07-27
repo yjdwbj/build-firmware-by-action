@@ -183,7 +183,7 @@ function build_kernel_deb() {
 
 function get_kernel_to_build() {
     KERNEL_GIT=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
-    vlist=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9].[0-9]\{1,2\}$')
+    vlist=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$')
     maxn=0
     tag=""
     for num in $vlist
