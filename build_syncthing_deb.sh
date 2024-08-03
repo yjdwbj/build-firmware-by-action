@@ -12,10 +12,10 @@ function build_debpkg(){
     deb_dir=${top_dir}/deb_dir_${ARCH}
 
     cd ${src_dir}
-    [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/bin,etc/{default,systemd}}
+    [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/bin,etc/systemd}
     # if use sudo root to install need to re-download librarys.
      ./build.sh
-     cp bin/* ${deb_dir}/usr/bin/
+     cp bin/syncthing ${deb_dir}/usr/bin/
 
      cp -av etc/linux-systemd/* ${deb_dir}/etc/systemd/
 
@@ -24,7 +24,7 @@ function build_debpkg(){
      # version number should be digit first.
      local_ver=$(sed -n 's/^\.TH.*\([0-9]\.[0-9]\{1,2\}\.[0-9]\{1,2\}\).*/\1/p' man/syncthing-config.5)
      cat > ${deb_dir}/DEBIAN/control << EOF
-Package: syncthing-git-${local_ver}
+Package: syncthing-git
 Version: ${local_ver}
 Installed-Size: 0
 Architecture: ${ARCH}

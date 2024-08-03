@@ -45,7 +45,7 @@ jobs:
         run: |
           . ${BUILD_TAILSCALE}
 
-      - name: build tailscale
+      - name: build syncthing
         run: |
           . ${BUILD_SYNCTHING}
 
