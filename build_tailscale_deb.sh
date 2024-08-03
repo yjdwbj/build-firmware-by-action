@@ -9,7 +9,7 @@
 
 function build_debpkg(){
     ARCH=${1}
-    deb_dir=${top_dir}/deb_dir_${ARCH}
+    deb_dir=${top_dir}/deb_tailsacle_${ARCH}
 
     cd ${src_dir}
     [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/{bin,sbin},etc/{default,systemd/system}}

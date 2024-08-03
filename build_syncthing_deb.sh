@@ -9,7 +9,7 @@
 
 function build_debpkg(){
     ARCH=${1}
-    deb_dir=${top_dir}/deb_dir_${ARCH}
+    deb_dir=${top_dir}/deb_syncthing_${ARCH}
 
     cd ${src_dir}
     [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/bin,etc/systemd}
@@ -20,6 +20,18 @@ function build_debpkg(){
      cp -av etc/linux-systemd/* ${deb_dir}/etc/systemd/
 
      mkdir -pv ${deb_dir}/DEBIAN
+     cat > ${deb_dir}/DEBIAN/postinst <<EOF
+#!/bin/bash
+
+USER_BIN_PATH=/home/\${SUDO_USER}/.local/bin
+
+[ ! -d \${USER_BIN_PATH} ] && mkdir -pv \${USER_BIN_PATH}
+    cp /usr/bin/syncthing \${USER_BIN_PATH}/
+    sed -i "s#/usr/bin/syncthing#\${USER_BIN_PATH}/syncthing#g" /etc/systemd/user/syncthing.service
+    chown \${SUDO_USER}:\${SUDO_USER} -R \${USER_BIN_PATH}/syncthing
+exit 0
+EOF
+   chmod 755 ${deb_dir}/DEBIAN/postinst
 
      # version number should be digit first.
      local_ver=$(sed -n 's/^\.TH.*\([0-9]\.[0-9]\{1,2\}\.[0-9]\{1,2\}\).*/\1/p' man/syncthing-config.5)
