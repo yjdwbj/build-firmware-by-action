@@ -14,8 +14,8 @@ function build_debpkg(){
     cd ${src_dir}
     [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/{bin,sbin},etc/{default,systemd/system}}
     # if use sudo root to install need to re-download librarys.
-    GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/sbin/  tailscale.com/cmd/tailscale tailscale.com/cmd/tailscaled
-    GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/bin/  tailscale.com/cmd/tailscale tailscale.com/cmd/tailscaled
+    GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/sbin/  tailscale.com/cmd/tailscaled
+    GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/bin/  tailscale.com/cmd/tailscale 
     cp cmd/tailscaled/tailscaled.defaults ${deb_dir}/etc/default/tailscaled
 
     sed -i 's/^FLAGS=""/FLAGS="-no-logs-no-support"/' ${deb_dir}/etc/default/tailscaled
