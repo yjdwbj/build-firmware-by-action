@@ -23,6 +23,7 @@ env:
   FEEDS_CONF: feeds.conf.default
   CONFIG_Y1S_FILE: openwrt_y1s.config
   CONFIG_GEHUA_FILE: openwrt_mt7621-gehua-ghl-r-001.config
+  CONFIG_XIAOMI_FILE: openwrt_xiaomi-ax3000t-rd03.config
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: false
@@ -243,6 +244,129 @@ jobs:
         TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
         echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
         tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/ramips/mt7621/* --owner=0 --group=0
+        rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
+
+    - name: Upload firmware
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.RELEASE_NAME }}
+        path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
+
+    - name: Generate release tag
+      id: tag
+      run: |
+        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+        echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
+        echo "::set-output name=status::success"
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: openwrt-firmware
+        body_path: openwrt-release.txt
+        files: ${{ github.workspace }}/${{env.RELEASE_NAME}}
+
+    - name: Remove old Releases
+      uses: dev-drprasad/delete-older-releases@v0.1.0
+      if: steps.tag.outputs.status == 'success'
+      with:
+        keep_latest: 6
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_xiaomi:
+    name: Build XiaoMi AX3000T rd03 firmware
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004) tree
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TZ"
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
+
+    - name: Clone source code
+      run: |
+        df -hT $PWD
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
+
+    - name: cache
+      if: github.event.inputs.cache == 'true' && github.event.inputs.cache != 'false'
+      uses: klever1988/cachewrtbuild@main
+      with:
+        ccache: 'true'
+        prefix: ${{ github.workspace }}/openwrt
+
+    - name: Update feeds
+      run: cd openwrt && ./scripts/feeds update -a
+
+    - name: Install feeds
+      run: cd openwrt && ./scripts/feeds install -a -f
+
+    - name: Load custom configuration
+      run: |
+        [ -e files ] && mv files openwrt/files
+        [ -e $CONFIG_XIAOMI_FILE ] && mv $CONFIG_XIAOMI_FILE openwrt/.config
+        TODAY=$(date +%Y-%m-%d)
+        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' openwrt/.config"
+
+    - name: Generate configuration file
+      run: cd openwrt && make defconfig
+
+    - name: Download package
+      id: package
+      run: |
+        cd openwrt
+        make download -j16
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: Compile the firmware
+      id: compile
+      run: |
+        cd openwrt
+        echo -e "compile"
+        make -j$(nproc) || make -j1 V=s
+        echo "======================="
+        echo "Space usage:"
+        echo "======================="
+        df -h
+        echo "======================="
+        echo "::set-output name=status::success"
+        tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
+        DEVICE_NAME=${tdev##DEVICE_}
+        FILE_DATE=_$(date +"%Y%m%d%H%M")
+        GIT_REV=_$(git rev-parse --short HEAD)
+        echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
+        echo "FILE_DATE=${FILE_DATE}" >> $GITHUB_ENV
+        echo "GIT_REV=${GIT_REV}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${GIT_REV}${FILE_DATE}.tar.gz" >> $GITHUB_ENV
+
+    - name: Check space usage
+      run: |
+        df -hT
+        echo "tree directory ....."
+        cd openwrt
+        tree -L 2 -d
+
+    - name: Prepare artifact
+      run: |
+        TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
+        echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
+        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/mediatek/filogic/* --owner=0 --group=0
         rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
 
     - name: Upload firmware
