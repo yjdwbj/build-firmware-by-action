@@ -74,11 +74,13 @@ Description: Library platform for building proxies in golang
  protects your privacy.
 EOF
    cat > ${deb_dir}/DEBIAN/preinst << EOF
-cp /etc/v2ray/config.json /etc/v2ray/config.json.old
+   [ -f /etc/v2ray/config.json ] &&  cp /etc/v2ray/config.json /etc/v2ray/config.json.old
+
 EOF
 
    cat > ${deb_dir}/DEBIAN/postinst << EOF
 [ -f /etc/v2ray/config.json.old ] && mv /etc/v2ray/config.json.old /etc/v2ray/config.json
+systemctl daemon-reload
 EOF
    chmod +x ${deb_dir}/DEBIAN/preinst
    chmod +x ${deb_dir}/DEBIAN/postinst
