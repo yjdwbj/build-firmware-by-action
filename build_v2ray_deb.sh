@@ -81,6 +81,21 @@ EOF
    cat > ${deb_dir}/DEBIAN/postinst << EOF
 [ -f /etc/v2ray/config.json.old ] && mv /etc/v2ray/config.json.old /etc/v2ray/config.json
 systemctl daemon-reload
+
+if [ "\${SUDO_USER}" ]; then
+   USER_SYSTEMD=/home/\${SUDO_USER}/.config/systemd/user/default.target.wants
+
+   if [ ! -d \${USER_SYSTEMD} ]; then
+      mkdir -pv \${USER_SYSTEMD}
+   fi
+   cd \${USER_SYSTEMD}
+   ln -svf /etc/systemd/user/v2ray.service .
+
+   su - \${SUDO_USER}  \
+      -c "export XDG_RUNTIME_DIR=/run/user/\${SUDO_UID}  DBUS_SESSION_BUS_ADDRESS='unix:path=\${XDG_RUNTIME_DIR}/bus' ;\
+      systemctl --user daemon-reload; systemctl --user start v2ray"
+fi
+
 EOF
    chmod +x ${deb_dir}/DEBIAN/preinst
    chmod +x ${deb_dir}/DEBIAN/postinst
