@@ -38,7 +38,7 @@ function build_v2ray_deb() {
     #cp release/debian/*.service ${deb_dir}/etc/systemd/system/
     cp release/config/*.dat  ${deb_dir}/usr/share/v2ray/
     cp release/config/config.json  ${deb_dir}/etc/v2ray/
-    cat >${deb_dir}/etc/systemd/system/v2ray.service <<EOF
+    cat >${deb_dir}/etc/systemd/user/v2ray.service <<EOF
 [Unit]
 Description=V2Ray Service
 Documentation=https://www.v2fly.org/
@@ -79,7 +79,9 @@ EOF
 EOF
 
    cat > ${deb_dir}/DEBIAN/postinst << EOF
-[ -f /etc/v2ray/config.json.old ] && mv /etc/v2ray/config.json.old /etc/v2ray/config.json
+if [ -d /etc/v2ray ]; then
+   [ -f /etc/v2ray/config.json.old ] && mv /etc/v2ray/config.json.old /etc/v2ray/config.json
+fi
 systemctl daemon-reload
 
 if [ "\${SUDO_USER}" ]; then
@@ -93,7 +95,7 @@ if [ "\${SUDO_USER}" ]; then
 
    su - \${SUDO_USER}  \
       -c "export XDG_RUNTIME_DIR=/run/user/\${SUDO_UID}  DBUS_SESSION_BUS_ADDRESS='unix:path=\${XDG_RUNTIME_DIR}/bus' ;\
-      systemctl --user daemon-reload; systemctl --user start v2ray"
+      systemctl --user daemon-reload; systemctl --user enable v2ray; systemctl --user start v2ray"
 fi
 
 EOF
