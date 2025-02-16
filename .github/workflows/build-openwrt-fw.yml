@@ -123,7 +123,7 @@ jobs:
         rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
 
     - name: Upload firmware
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE_NAME }}
         path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
@@ -247,7 +247,7 @@ jobs:
         rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
 
     - name: Upload firmware
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE_NAME }}
         path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
@@ -370,7 +370,7 @@ jobs:
         rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
 
     - name: Upload firmware
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE_NAME }}
         path: ${{ github.workspace }}/${{env.RELEASE_NAME}}

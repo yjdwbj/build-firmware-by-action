@@ -112,7 +112,7 @@ jobs:
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{env.F_VER}}"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kernel-${{ env.LOCALVERSION }}
           path: ${{ github.workspace }}/*.deb
@@ -224,7 +224,7 @@ jobs:
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{ env.F_VER }}"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pc-kernel-${{ env.LOCALVERSION }}
           path: ${{ github.workspace }}/*.deb
