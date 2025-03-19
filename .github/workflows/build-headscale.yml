@@ -1,0 +1,91 @@
+env:
+  DOCKER_IMAGE_NAME: headscale-lcy
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_FILE: Dockerfile.headscale
+  WORK_DIR: /workdir
+
+name: Build Headscale Docker Image
+
+# refer to https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images
+# Triggers
+on:
+  # Trigger the action manually from the UI
+  workflow_dispatch:
+  # Trigger the action when a version tag is pushed
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+' # Push events to matching numeric semver tags, i.e., 1.0.0, 20.15.10
+
+jobs:
+  build-and-push-landing-page:
+    name: Build and Push Landing Page Docker Image
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@main
+        with:
+          ref: ${{ github.ref }}
+      - name: Initialization environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E apt-get -qq update
+          sudo -E apt-get -qq install build-essential wget git tree -y
+          sudo -E apt-get -qq install gcc g++ binutils make -y
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo mkdir -p ${{env.WORK_DIR}} 
+          sudo chown $USER:$GROUPS ${{env.WORK_DIR}}
+
+      - name: Checkout code
+        run: |
+          cd ${{env.WORK_DIR}}
+          git clone https://github.com/juanfont/headscale
+          [ -e $DOCKER_FILE ] && mv $DOCKER_FILE headscale
+          echo $PWD
+
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # https://github.com/docker/metadata-action
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            yjdwbj/headscale
+            ghcr.io/${{ github.repository }}
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR  Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get the tag name
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      # https://github.com/docker/build-push-action
+      - name: Build and push Landing Page Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{env.WORK_DIR}}/headscale
+          file: ./Dockerfile.headscale
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
