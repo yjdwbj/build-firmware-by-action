@@ -32,7 +32,7 @@ function build_v2ray_deb() {
     LDFLAGS="-s -w -buildid= -X github.com/v2fly/v2ray-core/v5.codename=${CODENAME} -X github.com/v2fly/v2ray-core/v5.build=${BUILDNAME} -X github.com/v2fly/v2ray-core/v5.version=${VERSIONTAG}"
     env CGO_ENABLED=0 GOARCH=${ARCH} GOARM=6 go build -o ${deb_dir}/usr/bin/v2ray -ldflags "$LDFLAGS" ./main
 
-    mkdir -pv ${deb_dir}/DEBIAN
+    mkdir -pv ${deb_dir}/{DEBIAN,etc/systemd/user}
     cp release/debian/copyright ${deb_dir}/DEBIAN/
     cp release/debian/changelog ${deb_dir}/DEBIAN/
     #cp release/debian/*.service ${deb_dir}/etc/systemd/system/
