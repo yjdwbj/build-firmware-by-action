@@ -157,7 +157,7 @@ jobs:
 
   build_gehua:
     name: Build GeHua firmware
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@main
@@ -280,7 +280,12 @@ jobs:
 
   build_xiaomi:
     name: Build XiaoMi AX3000T rd03 firmware
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
     steps:
     - name: Checkout
       uses: actions/checkout@main
