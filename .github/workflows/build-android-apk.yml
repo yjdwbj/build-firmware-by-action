@@ -80,7 +80,7 @@ jobs:
       id: version
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
-        echo ::set-output name=go_version::$(curl -s https://raw.githubusercontent.com/actions/go-versions/main/versions-manifest.json | grep -oE '"version": "[0-9]{1}.[0-9]{1,}(.[0-9]{1,})?"' | head -1 | cut -d':' -f2 | sed 's/ //g; s/"//g')
+        echo name=go_version::$(curl -s https://raw.githubusercontent.com/actions/go-versions/main/versions-manifest.json | grep -oE '"version": "[0-9]{1}.[0-9]{1,}(.[0-9]{1,})?"' | head -1 | cut -d':' -f2 | sed 's/ //g; s/"//g') >> $GITHUB_OUTPUT
     - name: Setup Go
       uses: actions/setup-go@v5
       if: steps.cache.outputs.cache-hit != 'true'
@@ -141,9 +141,9 @@ jobs:
     - name: Generate release tag
       id: tag
       run: |
-        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+        echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
         echo "SagerNet Android client" > release.txt
-        echo "::set-output name=status::success"
+        echo "name=status::success" >>$GITHUB_OUTPUT
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
       if: steps.tag.outputs.status == 'success'

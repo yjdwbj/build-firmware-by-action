@@ -58,9 +58,9 @@ jobs:
       - name: Generate release tag
         id: tag
         run: |
-          echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+          echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
           echo "v2ray-core debian package" > release.txt
-          echo "::set-output name=status::success"
+          echo "name=status::success" >>$GITHUB_OUTPUT
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
