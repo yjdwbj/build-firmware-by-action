@@ -131,7 +131,7 @@ jobs:
     - name: Generate release tag
       id: tag
       run: |
-        echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
+        echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
 
@@ -254,9 +254,9 @@ jobs:
     - name: Generate release tag
       id: tag
       run: |
-        echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
+        echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
-        echo name=status::success" >>$GITHUB_OUTPUT
+        echo "name=status::success" >>$GITHUB_OUTPUT
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
@@ -344,7 +344,7 @@ jobs:
         cd openwrt
         echo -e "compile"
         make -j$(nproc) || make -j1 V=s
-        echo name=status::success" >>$GITHUB_OUTPUT
+        echo "name=status::success" >>$GITHUB_OUTPUT
         tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
         DEVICE_NAME=${tdev##DEVICE_}
         FILE_DATE=_$(date +"%Y%m%d%H%M")
@@ -377,7 +377,7 @@ jobs:
     - name: Generate release tag
       id: tag
       run: |
-        echo name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
+        echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
 
