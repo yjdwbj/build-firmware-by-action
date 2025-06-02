@@ -68,14 +68,14 @@ jobs:
           echo "name=status::success" >>$GITHUB_OUTPUT
 
       - name: Upload firmware to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: steps.tag.outputs.status == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: tailscale
-          body_path: release.txt
           files: |
+            release.txt
             ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
