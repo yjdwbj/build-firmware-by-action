@@ -64,8 +64,18 @@ jobs:
         id: tag
         run: |
           echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
-          echo "tailscale debian package" > release.txt
+          echo "tailscale debian package" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "tailscale latest"
+          prerelease: true
+          title: "Development build of tailscale debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2

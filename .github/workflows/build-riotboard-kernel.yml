@@ -65,6 +65,16 @@ jobs:
           echo "RiotBoard linux kernel ChangeLog-${F_VER}" > release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "riotboard kernel latest"
+          prerelease: true
+          title: "Development build of riotboard kernel debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         if: steps.tag.outputs.status == 'success'

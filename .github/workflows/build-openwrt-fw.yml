@@ -132,8 +132,18 @@ jobs:
       id: tag
       run: |
         echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
-        echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
+        echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
+
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "Openwrt firmware latest"
+        prerelease: true
+        title: "Development build of openwrt firmware"
+        files: |
+          Release.txt
+          ${{ github.workspace }}/*.deb
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1

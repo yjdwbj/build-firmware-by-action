@@ -121,8 +121,18 @@ jobs:
         id: tag
         run: |
           echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
-          echo "Read change logs in ChangeLog-${{ env.F_VER }}" > release.txt
+          echo "Read change logs in ChangeLog-${{ env.F_VER }}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "x86_64 kernel latest"
+          prerelease: true
+          title: "Development build of x86_64 kernel debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
@@ -233,8 +243,18 @@ jobs:
         id: tag
         run: |
           echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
-          echo "Read change logs in ChangeLog-${{ env.F_VER }}" > release.txt
+          echo "Read change logs in ChangeLog-${{ env.F_VER }}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "x86_64 kernel latest"
+          prerelease: true
+          title: "Development build of x86_64 kernel debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
