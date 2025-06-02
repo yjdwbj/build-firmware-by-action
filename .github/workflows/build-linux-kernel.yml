@@ -127,7 +127,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64 kernel latest"
+          automatic_release_tag: "x86_64-kernel-latest"
           prerelease: true
           title: "Development build of x86_64 kernel debian package"
           files: |
@@ -249,7 +249,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64 kernel latest"
+          automatic_release_tag: "x86_64-kernel-latest"
           prerelease: true
           title: "Development build of x86_64 kernel debian package"
           files: |

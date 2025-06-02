@@ -138,7 +138,7 @@ jobs:
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "Openwrt firmware latest"
+        automatic_release_tag: "Openwrt-firmware-latest"
         prerelease: true
         title: "Development build of openwrt firmware"
         files: |

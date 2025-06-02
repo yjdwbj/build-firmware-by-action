@@ -68,7 +68,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "riotboard kernel latest"
+          automatic_release_tag: "riotboard-kernel-latest"
           prerelease: true
           title: "Development build of riotboard kernel debian package"
           files: |
