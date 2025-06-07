@@ -112,10 +112,7 @@ jobs:
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{env.F_VER}}"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kernel-${{ env.LOCALVERSION }}
-          path: ${{ github.workspace }}/*.deb
+
 
       - name: Generate release tag
         id: tag
@@ -124,25 +121,12 @@ jobs:
           echo "Read change logs in ChangeLog-${{ env.F_VER }}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - uses: actions/upload-artifact@v4
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64-kernel-latest"
-          prerelease: true
-          title: "Development build of x86_64 kernel debian package"
-          files: |
+          name: kernel-${{ env.LOCALVERSION }}
+          path: |
             Release.txt
             ${{ github.workspace }}/*.deb
-
-      - name: Upload firmware to release
-        uses: softprops/action-gh-release@v1
-        if: steps.tag.outputs.status == 'success'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: linux-x86_64-kernel-package
-          body_path: release.txt
-          files: ${{ github.workspace }}/*.deb
 
   # This workflow contains a single job called "build"
   build_intel_kernel:
@@ -234,11 +218,6 @@ jobs:
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{ env.F_VER }}"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pc-kernel-${{ env.LOCALVERSION }}
-          path: ${{ github.workspace }}/*.deb
-
       - name: Generate release tag
         id: tag
         run: |
@@ -246,25 +225,12 @@ jobs:
           echo "Read change logs in ChangeLog-${{ env.F_VER }}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - uses: actions/upload-artifact@v4
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64-kernel-latest"
-          prerelease: true
-          title: "Development build of x86_64 kernel debian package"
-          files: |
+          name: pc-kernel-${{ env.LOCALVERSION }}
+          path: |
             Release.txt
             ${{ github.workspace }}/*.deb
-
-      - name: Upload firmware to release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: steps.tag.outputs.status == 'success'
-        with:
-          tag_name: linux-x86_64-kernel-package
-          body_path: release.txt
-          files: ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
         uses: dev-drprasad/delete-older-releases@v0.1.0

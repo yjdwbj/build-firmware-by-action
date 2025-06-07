@@ -255,12 +255,6 @@ jobs:
         tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/ramips/mt7621/* --owner=0 --group=0
         rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
 
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.RELEASE_NAME }}
-        path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
     - name: Generate release tag
       id: tag
       run: |
@@ -268,15 +262,13 @@ jobs:
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
 
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
-      if: steps.tag.outputs.status == 'success'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: openwrt-firmware
-        body_path: openwrt-release.txt
-        files: ${{ github.workspace }}/${{env.RELEASE_NAME}}
+        name: ${{ env.RELEASE_NAME }}
+        path: |
+          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+          Release.txt
 
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.1.0
@@ -390,16 +382,6 @@ jobs:
         echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
-      if: steps.tag.outputs.status == 'success'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: openwrt-firmware
-        body_path: openwrt-release.txt
-        files: ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.1.0
