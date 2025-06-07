@@ -122,12 +122,6 @@ jobs:
         tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/ramips/mt7620/* --owner=0 --group=0
         rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
 
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.RELEASE_NAME }}
-        path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
     - name: Generate release tag
       id: tag
       run: |
@@ -135,18 +129,16 @@ jobs:
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
 
-    - uses: "marvinpinto/action-automatic-releases@latest"
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "Openwrt-firmware-latest"
-        prerelease: true
-        title: "Development build of openwrt firmware"
-        files: |
+        name: ${{ env.RELEASE_NAME }}
+        path: |
           Release.txt
-          ${{ github.workspace }}/*.deb
+          ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -270,6 +262,17 @@ jobs:
           ${{ github.workspace }}/${{env.RELEASE_NAME}}
           Release.txt
 
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v2
+      if: github.ref_type == 'tag'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: OpenWrt-GeHua
+        files: |
+          Release.txt
+          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.1.0
       if: steps.tag.outputs.status == 'success'
@@ -382,6 +385,17 @@ jobs:
         echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > openwrt-release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v2
+      if: github.ref_type == 'tag'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: OpenWrt-XiaoMi-AX3000T-rd03
+        files: |
+          Release.txt
+          ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.1.0

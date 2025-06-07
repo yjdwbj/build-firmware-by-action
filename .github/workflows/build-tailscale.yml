@@ -40,7 +40,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo -E apt-get -qq update
-          sudo -E apt-get -qq install build-essential wget git tree libelf-dev debmake debhelper -y
+          sudo -E apt-get -qq install  dpkg-dev libdw-dev build-essential wget git tree libelf-dev debmake debhelper -y
           sudo -E apt-get -qq install gcc g++ binutils make bison flex yasm libelf-dev binutils-arm-linux-gnueabi gcc-arm-linux-gnueabi -y
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
@@ -54,18 +54,19 @@ jobs:
         run: |
           . ${BUILD_SYNCTHING}
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: upload_deb
-          path: |
-            ${{ github.workspace }}/*.deb
-
       - name: Generate release tag
         id: tag
         run: |
           echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
           echo "tailscale debian package" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upload_deb
+          path: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
