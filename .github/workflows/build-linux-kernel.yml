@@ -144,7 +144,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo -E apt-get -qq update
-          sudo -E apt-get -qq install build-essential bc wget git tree libelf-dev debmake debhelper -y
+          sudo -E apt-get -qq install libdw-dev build-essential bc wget git tree libelf-dev debmake debhelper -y
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
           sudo timedatectl set-timezone "$TZ"
@@ -232,13 +232,23 @@ jobs:
             Release.txt
             ${{ github.workspace }}/*.deb
 
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "x86_64-kernel-latest"
+          prerelease: true
+          title: "Development build of x86_64-kernel debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         if: github.ref_type == 'tag'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v2ray-core
+          tag_name: x86_64-kernel
           files: |
             Release.txt
             ${{ github.workspace }}/*.deb

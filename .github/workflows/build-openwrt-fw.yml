@@ -129,6 +129,16 @@ jobs:
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
 
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "openwrt-latest"
+        prerelease: true
+        title: "Development build of openwrt firmware package"
+        files: |
+          Release.txt
+          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+
     - name: Upload firmware
       uses: actions/upload-artifact@v4
       with:

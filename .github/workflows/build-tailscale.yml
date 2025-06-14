@@ -80,13 +80,13 @@ jobs:
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
-        if: steps.tag.outputs.status == 'success'
+        if: github.ref_type == 'tag'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: tailscale
           files: |
-            release.txt
+            Release.txt
             ${{ github.workspace }}/*.deb
 
       - name: Remove old Releases
