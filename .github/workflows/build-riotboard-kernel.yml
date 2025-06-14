@@ -62,7 +62,7 @@ jobs:
         id: tag
         run: |
           echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
-          echo "RiotBoard linux kernel ChangeLog-${F_VER}" > release.txt
+          echo "RiotBoard linux kernel ChangeLog-${F_VER}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
       - uses: "marvinpinto/action-automatic-releases@latest"

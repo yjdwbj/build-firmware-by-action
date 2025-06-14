@@ -54,19 +54,18 @@ jobs:
         run: |
           . ${BUILD_SYNCTHING}
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailscale
+          path: |
+            ${{ github.workspace }}/*.deb
+
       - name: Generate release tag
         id: tag
         run: |
           echo "name=release_tag::$(date +"%Y.%m.%d-%H%M")" >>$GITHUB_OUTPUT
           echo "tailscale debian package" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: upload_deb
-          path: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
