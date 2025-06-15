@@ -112,8 +112,6 @@ jobs:
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{env.F_VER}}"
 
-
-
       - name: Generate release tag
         id: tag
         run: |
@@ -121,12 +119,43 @@ jobs:
           echo "Read change logs in ChangeLog-${{ env.F_VER }}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "x86_64-kernel-latest"
+          prerelease: true
+          title: "Development build of x86_64-kernel debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
       - uses: actions/upload-artifact@v4
         with:
           name: kernel-${{ env.LOCALVERSION }}
           path: |
             Release.txt
             ${{ github.workspace }}/*.deb
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: x86_64-kernel
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
+      - name: Remove old Releases
+        uses: dev-drprasad/delete-older-releases@v0.1.0
+        if: steps.tag.outputs.status == 'success'
+        with:
+          keep_latest: 6
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
   # This workflow contains a single job called "build"
   build_intel_kernel:
