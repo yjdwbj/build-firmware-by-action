@@ -122,7 +122,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64-kernel-latest"
+          automatic_release_tag: "x86_64-kernel-amd-latest"
           prerelease: true
           title: "Development build of x86_64-kernel debian package"
           files: |
@@ -142,7 +142,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "x86_64-kernel-latest"
+          tag_name: x86_64-kernel-amd
           files: |
             Release.txt
             ${{ github.workspace }}/*.deb
@@ -264,7 +264,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64-kernel-latest"
+          automatic_release_tag: "x86_64-kernel-intel-latest"
           prerelease: true
           title: "Development build of x86_64-kernel debian package"
           files: |
@@ -277,7 +277,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "x86_64-kernel-latest"
+          tag_name: x86_64-kernel-intel
           files: |
             Release.txt
             ${{ github.workspace }}/*.deb
