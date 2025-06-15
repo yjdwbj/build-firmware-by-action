@@ -54,6 +54,13 @@ jobs:
         run: |
           . ${BUILD_SYNCTHING}
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailscale
+          path: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
       - name: Generate release tag
         id: tag
         run: |
@@ -71,20 +78,13 @@ jobs:
             Release.txt
             ${{ github.workspace }}/*.deb
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tailscale
-          path: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
-
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         if: github.ref_type == 'tag'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: tailscale
+          tag_name: "tailscale-latest"
           files: |
             Release.txt
             ${{ github.workspace }}/*.deb

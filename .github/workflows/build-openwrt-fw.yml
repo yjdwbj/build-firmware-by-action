@@ -153,7 +153,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: openwrt-firmware
+        tag_name: "openwrt-latest"
         body_path: openwrt-release.txt
         files: ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
@@ -264,6 +264,14 @@ jobs:
         echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
         echo "name=status::success" >>$GITHUB_OUTPUT
 
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: "openwrt-latest"
+        path: |
+          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+          Release.txt
+
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -273,14 +281,6 @@ jobs:
         files: |
           Release.txt
           ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.RELEASE_NAME }}
-        path: |
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
-          Release.txt
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
@@ -399,6 +399,7 @@ jobs:
         name: ${{ env.RELEASE_NAME }}
         path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
+
     - name: Generate release tag
       id: tag
       run: |
@@ -409,7 +410,7 @@ jobs:
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "openwrt-latest"
+        automatic_release_tag: "OpenWrt-XiaoMi-AX3000T-rd03"
         prerelease: true
         title: "Development build of openwrt firmware package"
         files: |
@@ -422,7 +423,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: OpenWrt-XiaoMi-AX3000T-rd03
+        tag_name: "OpenWrt-XiaoMi-AX3000T-rd03"
         files: |
           Release.txt
           ${{ github.workspace }}/${{env.RELEASE_NAME}}

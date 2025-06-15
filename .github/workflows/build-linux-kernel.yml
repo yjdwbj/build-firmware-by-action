@@ -142,7 +142,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: x86_64-kernel
+          tag_name: "x86_64-kernel-latest"
           files: |
             Release.txt
             ${{ github.workspace }}/*.deb
@@ -277,7 +277,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: x86_64-kernel
+          tag_name: "x86_64-kernel-latest"
           files: |
             Release.txt
             ${{ github.workspace }}/*.deb
