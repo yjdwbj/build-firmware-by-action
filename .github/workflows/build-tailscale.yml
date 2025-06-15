@@ -54,12 +54,6 @@ jobs:
         run: |
           . ${BUILD_SYNCTHING}
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tailscale
-          path: |
-            ${{ github.workspace }}/*.deb
-
       - name: Generate release tag
         id: tag
         run: |
@@ -74,6 +68,13 @@ jobs:
           prerelease: true
           title: "Development build of tailscale debian package"
           files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailscale
+          path: |
             Release.txt
             ${{ github.workspace }}/*.deb
 
