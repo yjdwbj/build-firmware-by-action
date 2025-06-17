@@ -61,13 +61,6 @@ jobs:
           echo "tailscale debian package" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tailscale
-          path: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
-
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -75,6 +68,13 @@ jobs:
           prerelease: true
           title: "Development build of tailscale debian package"
           files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+            
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailscale
+          path: |
             Release.txt
             ${{ github.workspace }}/*.deb
 
