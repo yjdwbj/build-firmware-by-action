@@ -66,7 +66,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "tailscale-latest"
+          automatic_release_tag: "tailscale-git-latest"
           prerelease: true
           title: "Development build of tailscale debian package"
           files: |
@@ -141,7 +141,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "syncthing-latest"
+          automatic_release_tag: "syncthing-git-latest"
           prerelease: true
           title: "Development build of syncthing debian package"
           files: |
