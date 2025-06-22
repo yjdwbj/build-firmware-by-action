@@ -164,7 +164,7 @@ function build_kernel_deb() {
 
     cp .config ${INSTALL_MOD_PATH}/boot/config-${UR}
     cp System.map ${INSTALL_MOD_PATH}/boot/System.map-${UR}
-    build_88XXau ${INSTALL_MOD_PATH}
+    # build_88XXau ${INSTALL_MOD_PATH}
     echo "Build deb at ${PWD}, github workspace is: ${workspace}"
     dpkg-deb --root-owner-group -b -Znone ${INSTALL_MOD_PATH} ../
 
