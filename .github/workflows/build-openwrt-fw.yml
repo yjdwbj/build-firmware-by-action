@@ -293,15 +293,6 @@ jobs:
           Release.txt
           ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
-      if: steps.tag.outputs.status == 'success'
-      with:
-        keep_latest: 6
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build_xiaomi:
     name: Build XiaoMi AX3000T rd03 firmware
     runs-on: ubuntu-22.04
@@ -410,7 +401,7 @@ jobs:
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "OpenWrt-XiaoMi-AX3000T-rd03"
+        automatic_release_tag: "openwrt-latest"
         prerelease: true
         title: "Development build of openwrt firmware package"
         files: |
@@ -423,16 +414,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: "OpenWrt-XiaoMi-AX3000T-rd03"
+        tag_name: OpenWrt-XiaoMi-AX3000T-rd03
         files: |
           Release.txt
           ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
-      if: steps.tag.outputs.status == 'success'
-      with:
-        keep_latest: 6
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
