@@ -11,6 +11,8 @@ name: Build Headscale Docker Image
 on:
   # Trigger the action manually from the UI
   workflow_dispatch:
+  schedule:
+    - cron: 4 25 * * *
   # Trigger the action when a version tag is pushed
   push:
     tags:
@@ -20,11 +22,6 @@ jobs:
   build-and-push-docker-page:
     name: Build and Push Image to docker.io
     runs-on: ubuntu-22.04
-    permissions:
-      packages: write
-      contents: read
-      attestations: write
-      id-token: write
 
     steps:
       - uses: actions/checkout@main
@@ -39,7 +36,7 @@ jobs:
           sudo -E apt-get -qq install gcc g++ binutils make -y
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
-          sudo mkdir -p ${{env.WORK_DIR}} 
+          sudo mkdir -p ${{env.WORK_DIR}}
           sudo chown $USER:$GROUPS ${{env.WORK_DIR}}
 
       - name: Checkout code
@@ -59,7 +56,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: docker.io/yjdwbj/headscale
-            
+
       - name: Login to Docker Registry
         uses: docker/login-action@v3
         with:
@@ -109,7 +106,7 @@ jobs:
           sudo -E apt-get -qq install gcc g++ binutils make -y
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
-          sudo mkdir -p ${{env.WORK_DIR}} 
+          sudo mkdir -p ${{env.WORK_DIR}}
           sudo chown $USER:$GROUPS ${{env.WORK_DIR}}
 
       - name: Checkout code
@@ -129,7 +126,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/yjdwbj/headscale-lcy
-    
+
       - name: Login to GHCR Registry
         uses: docker/login-action@v3
         with:

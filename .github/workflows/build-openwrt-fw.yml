@@ -121,7 +121,7 @@ jobs:
         name: ${{ env.RELEASE_NAME }}
         path: |
           Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+          ${{ github.workspace }}/*.tar.gz
 
     - name: Prepare artifact
       run: |
@@ -269,7 +269,7 @@ jobs:
       with:
         name: "openwrt-latest"
         path: |
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+          ${{ github.workspace }}/*.tar.gz
           Release.txt
 
     - uses: "marvinpinto/action-automatic-releases@latest"
@@ -388,7 +388,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE_NAME }}
-        path: ${{ github.workspace }}/${{env.RELEASE_NAME}}
+        path: ${{ github.workspace }}/*.tar.gz
 
 
     - name: Generate release tag
@@ -406,7 +406,7 @@ jobs:
         title: "Development build of openwrt firmware package"
         files: |
           Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
+          ${{ github.workspace }}/*.tar.gz
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
