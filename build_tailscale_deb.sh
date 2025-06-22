@@ -15,7 +15,7 @@ function build_debpkg(){
     [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/{bin,sbin},etc/{default,systemd/system}}
     # if use sudo root to install need to re-download librarys.
     GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/sbin/  tailscale.com/cmd/tailscaled
-    GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/bin/  tailscale.com/cmd/tailscale 
+    GOOS=linux GOARCH=${ARCH} GOARM=7 ./tool/go build -o ${deb_dir}/usr/bin/  tailscale.com/cmd/tailscale
     cp cmd/tailscaled/tailscaled.defaults ${deb_dir}/etc/default/tailscaled
 
     sed -i 's/^FLAGS=""/FLAGS="-no-logs-no-support"/' ${deb_dir}/etc/default/tailscaled
@@ -47,7 +47,7 @@ EOF
     installed_size=$(((pkg_size_bytes + 1023) / 1024))
     sh -c " cd '${deb_dir}'; \
         sed -i '/^Installed-Size:/!b;cInstalled-Size: ${installed_size}' DEBIAN/control"
-    dpkg-deb -b -Znone "${deb_dir}" ../
+    dpkg-deb -b -Znone "${deb_dir}" ${top_dir}
 }
 
 for arch in arm64 arm amd64; do

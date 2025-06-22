@@ -56,7 +56,7 @@ EOF
     installed_size=$(((pkg_size_bytes + 1023) / 1024))
     sh -c " cd '${deb_dir}'; \
         sed -i '/^Installed-Size:/!b;cInstalled-Size: ${installed_size}' DEBIAN/control"
-    dpkg-deb -b -Znone "${deb_dir}" ../
+    dpkg-deb -b -Znone "${deb_dir}" ${top_dir}
 }
 
 for arch in arm64 arm amd64; do
