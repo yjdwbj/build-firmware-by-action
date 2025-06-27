@@ -296,11 +296,6 @@ jobs:
   build_xiaomi:
     name: Build XiaoMi AX3000T rd03 firmware
     runs-on: ubuntu-22.04
-    permissions:
-      packages: write
-      contents: read
-      attestations: write
-      id-token: write
     steps:
     - name: Checkout
       uses: actions/checkout@main
