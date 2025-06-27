@@ -12,7 +12,8 @@ on:
   # Trigger the action manually from the UI
   workflow_dispatch:
   schedule:
-    - cron: 4 25 * * *
+    - cron: 4 22 * * *
+
   # Trigger the action when a version tag is pushed
   push:
     tags:
