@@ -28,11 +28,12 @@ function build_v2ray_deb() {
     VERSIONTAG=$(git describe --abbrev=0 --tags)
     BUILDNAME=lcy
     deb_dir=${top_dir}/deb_dir_${ARCH}
-    [ ! -d ${deb_dir} ] && mkdir -pv ${deb_dir}/{usr/{bin,share/v2ray},etc/{v2ray,systemd/system}}
+
+    mkdir -pv ${deb_dir}/{usr/{bin,share/v2ray},etc/{v2ray,systemd/system}}
     LDFLAGS="-s -w -buildid= -X github.com/v2fly/v2ray-core/v5.codename=${CODENAME} -X github.com/v2fly/v2ray-core/v5.build=${BUILDNAME} -X github.com/v2fly/v2ray-core/v5.version=${VERSIONTAG}"
     env CGO_ENABLED=0 GOARCH=${ARCH} GOARM=6 go build -o ${deb_dir}/usr/bin/v2ray -ldflags "$LDFLAGS" ./main
 
-    mkdir -pv ${deb_dir}/{DEBIAN,etc/systemd/user}
+    mkdir -pv ${deb_dir}/{DEBIAN,etc/systemd/user,etc/v2ray,usr/share/v2ray}
     cp release/debian/copyright ${deb_dir}/DEBIAN/
     cp release/debian/changelog ${deb_dir}/DEBIAN/
     #cp release/debian/*.service ${deb_dir}/etc/systemd/system/
