@@ -123,6 +123,8 @@ jobs:
             -DGGML_CUDA_FA_ALL_QUANTS=ON \
             -DGGML_CUDA_CCCL_VERSION=v3.4.3 \
             -DGGML_RPC=ON \
+            -DLLAMA_BUILD_UI=ON \
+            -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined \
             -DLLAMA_BUILD_TESTS=OFF \
             2>&1 | tee configure.log
 
@@ -184,6 +186,7 @@ jobs:
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DLLAMA_BUILD_UI=ON \
             -DGGML_METAL=ON \
             -DGGML_NATIVE=OFF \
             -DGGML_RPC=ON \

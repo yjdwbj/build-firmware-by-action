@@ -26,7 +26,7 @@ jobs:
   build_amd_kernel:
     name: Build Linux kernel for AMD CPU R3700X with B550M
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -150,7 +150,7 @@ jobs:
   build_intel_kernel:
     name: Build Linux kernel for Intel CPU
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -270,7 +270,7 @@ jobs:
   build_N100_kernel:
     name: Build Linux kernel for Intel N100 Mini PC CPU
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
