@@ -49,21 +49,7 @@ jobs:
       - name: download kernel source
         id: get_kernel_version
         run: |
-          tag=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | tail -n1)
-          maxn=0
-          # tag=""
-          # for num in $vlist
-          # do
-          #     # v=$(echo $num | tr -d -c 0-9)
-          #     ma=$(echo $num | cut -d. -f1 | tr -d -c 0-9)
-          #     mi=$(echo $num | cut -d. -f2)
-          #     re=$(echo $num | cut -d. -f3)
-          #     v=$((ma * 1000 + mi * 100 +  re))
-          #     if (( $v > $maxn )); then
-          #         maxn=$v
-          #         tag=$num
-          #     fi
-          # done
+          tag=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V | tail -n1)
           M_VER=$(echo ${tag} | awk -F '.' '{print $1".x"}')
           F_VER=$(echo ${tag} | tr -d -c 0-9.)
           echo "M_VER=$(echo ${tag} | awk -F '.' '{print $1".x"}')" >> $GITHUB_ENV
@@ -186,21 +172,7 @@ jobs:
       - name: download kernel source
         id: get_kernel_version
         run: |
-          vlist=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$')
-          maxn=0
-          tag=""
-          for num in $vlist
-          do
-              # v=$(echo $num | tr -d -c 0-9)
-              ma=$(echo $num | cut -d. -f1 | tr -d -c 0-9)
-              mi=$(echo $num | cut -d. -f2)
-              re=$(echo $num | cut -d. -f3)
-              v=$((ma * 1000 + mi * 100 +  re))
-              if (( $v > $maxn )); then
-                  maxn=$v
-                  tag=$num
-              fi
-          done
+          tag=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V | tail -n1)
           M_VER=$(echo ${tag} | awk -F '.' '{print $1".x"}')
           F_VER=$(echo ${tag} | tr -d -c 0-9.)
           echo "M_VER=$(echo ${tag} | awk -F '.' '{print $1".x"}')" >> $GITHUB_ENV
@@ -320,21 +292,7 @@ jobs:
       - name: download kernel source
         id: get_kernel_version
         run: |
-          vlist=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$')
-          maxn=0
-          tag=""
-          for num in $vlist
-          do
-              # v=$(echo $num | tr -d -c 0-9)
-              ma=$(echo $num | cut -d. -f1 | tr -d -c 0-9)
-              mi=$(echo $num | cut -d. -f2)
-              re=$(echo $num | cut -d. -f3)
-              v=$((ma * 1000 + mi * 100 +  re))
-              if (( $v > $maxn )); then
-                  maxn=$v
-                  tag=$num
-              fi
-          done
+          tag=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V | tail -n1)
           M_VER=$(echo ${tag} | awk -F '.' '{print $1".x"}')
           F_VER=$(echo ${tag} | tr -d -c 0-9.)
           echo "M_VER=$(echo ${tag} | awk -F '.' '{print $1".x"}')" >> $GITHUB_ENV
@@ -351,7 +309,7 @@ jobs:
           KBUILD_BUILD_USER: "yjdwbj"
           KBUILD_BUILD_HOST: "gmail.com"
         run: |
-          echo "LOCALVERSION=$(date +%Y%m%d)-n100-lcy" >> $GITHUB_ENV
+          echo "LOCALVERSION=$(date +%Y%m%d)-lcy" >> $GITHUB_ENV
           LOCALVERSION=$(date +%Y%m%d)-lcy
           KER_FNAME="linux-${{ env.F_VER }}"
           KER_INSTALL_DIR=${LOCALVERSION}/install
