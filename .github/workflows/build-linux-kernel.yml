@@ -95,7 +95,7 @@ jobs:
 
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-ryzen7
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-ryzen7 KCFLAGS="-march=znver2 -mtune=znver2"
           echo "output kernel file ${KERNEL_PKG}"
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{env.F_VER}}"
@@ -337,7 +337,7 @@ jobs:
 
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-N100
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-N100 KCFLAGS="-march=alderlake -mtune=gracemont"
           echo "output kernel file ${KERNEL_PKG}"
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{ env.F_VER }}"
@@ -349,6 +349,16 @@ jobs:
           echo "Read change logs in ChangeLog-${{ env.F_VER }}" > Release.txt
           echo "name=status::success" >>$GITHUB_OUTPUT
 
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "x86_64-kernel-intel-latest"
+          prerelease: true
+          title: "Development build of x86_64 N100 kernel debian package"
+          files: |
+            Release.txt
+            ${{ github.workspace }}/*.deb
+
       - uses: actions/upload-artifact@v4
         with:
           name: pc-kernel-${{ env.LOCALVERSION }}
@@ -356,15 +366,6 @@ jobs:
             Release.txt
             ${{ github.workspace }}/*.deb
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "x86_64-kernel-intel-latest"
-          prerelease: true
-          title: "Development build of x86_64-kernel debian package"
-          files: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2

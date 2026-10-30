@@ -1,0 +1,241 @@
+# llama.cpp build
+#   - linux-cuda : Debian 13 + RTX 3060 (sm_86) + Ryzen 7 3700X (Zen 2)
+#   - macos-metal: MacBook Pro M5 Pro
+#
+
+name: llama.cpp nightly
+
+on:
+  schedule:
+    - cron: '17 18 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Recompile even if there are no new commits upstream'
+        type: boolean
+        default: false
+      ref:
+        description: 'target branch'
+        default: 'master'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: llama-nightly
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  LLAMACPP_GIT: "https://github.com/ggml-org/llama.cpp"
+  WORK_DIR: /workdir
+  UPSTREAM: ggml-org/llama.cpp
+  KEEP_RELEASES: 7
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    outputs:
+      sha:     ${{ steps.up.outputs.sha }}
+      short:   ${{ steps.up.outputs.short }}
+      changed: ${{ steps.up.outputs.changed }}
+    steps:
+      - id: up
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.ref || 'master' }}
+          FORCE: ${{ inputs.force || false }}
+        run: |
+          SHA=$(git ls-remote "${LLAMACPP_GIT}" master | head -n1 | cut -f1)
+          [ -z "$SHA" ] && SHA="$REF"
+          SHORT=${SHA:0:9}
+          echo "sha=$SHA"     >> "$GITHUB_OUTPUT"
+          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+          if [ "$FORCE" != "true" ] && gh release view "nightly-$SHORT" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "nightly-$SHORT  exist, skip"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true"  >> "$GITHUB_OUTPUT"
+          fi
+
+  linux-cuda:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    # The glibc version in Ubuntu 24.04 (2.39) is older than that in Debian 13 (2.41);
+    # therefore, programs compiled on Ubuntu 24.04 can run directly on Debian 13.
+    # The CUDA version must not exceed the version supported by the installed driver
+    # (e.g., driver 615 supports up to CUDA 13.4, as shown by `nvidia-smi`).
+    container: nvidia/cuda:13.4.1-devel-ubuntu24.04
+    timeout-minutes: 300
+    env:
+      CCACHE_DIR: /root/.ccache
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - name: Install build tools
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git ca-certificates build-essential cmake ninja-build ccache libssl-dev python3
+
+      - name: Checkout upstream
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.UPSTREAM }}
+          ref: ${{ needs.check.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: /root/.ccache
+          key: ccache-cuda-sm86-${{ needs.check.outputs.sha }}
+          restore-keys: ccache-cuda-sm86-
+
+      - name: Configure
+        # explain：
+        #  GGML_NATIVE=OFF  Do not use ON; otherwise, it will apply CPU optimizations
+        #                   specific to the GitHub runner (which may include AVX-512)，
+        #                   On the 3700X, an "Illegal instruction" error occurs. When this option is disabled (OFF),
+        #                   AVX2/FMA/F16C/BMI2 are enabled by default—which matches
+        #                   the full set of instructions supported by the Zen 2 architecture,
+        #                   as well as the configuration used in the upstream `release.yml`.
+        #                   If using a CTK version earlier than 13.5, you will need to specify these explicitly.
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache \
+            -DGGML_NATIVE=OFF \
+            -DGGML_CUDA=ON \
+            -DCMAKE_CUDA_ARCHITECTURES=86-real \
+            -DGGML_CUDA_FA_ALL_QUANTS=ON \
+            -DGGML_CUDA_CCCL_VERSION=v3.4.3 \
+            -DGGML_RPC=ON \
+            -DLLAMA_BUILD_TESTS=OFF \
+            2>&1 | tee configure.log
+
+      - name: Build
+        run: |
+          cmake --build build -j "$(nproc)" 2>&1 | tee build.log
+          ccache -s
+          grep -q "UI: embedded" build.log || { echo "::error::Web UI not included"; exit 1; }
+
+      - name: Bundle CUDA runtime + pack
+        run: |
+          cp -L /usr/local/cuda/lib64/libcudart.so.13   build/bin/
+          cp -L /usr/local/cuda/lib64/libcublas.so.13   build/bin/
+          cp -L /usr/local/cuda/lib64/libcublasLt.so.13 build/bin/
+          cp LICENSE build/bin/
+          git rev-parse HEAD > build/bin/COMMIT
+          tar -czf llama-linux-cuda13.4-sm86-${{ needs.check.outputs.short }}.tar.gz -C build/bin .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-cuda
+          path: llama-linux-cuda13.4-sm86-*.tar.gz
+          retention-days: 3
+
+  macos-metal:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    # You must compile using the macOS 26 SDK to include support for the M5’s Neural Accelerator (Tensor API).
+    # If the `macos-26` tag is unavailable, use `macos-latest` instead; after the build, check the logs to confirm
+    # that "has tensor = true" appears.
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/../ccache
+      CCACHE_MAXSIZE: 1G
+    steps:
+      - name: Checkout upstream
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.UPSTREAM }}
+          ref: ${{ needs.check.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Install build tools
+        run: brew install ninja ccache || true
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/../ccache
+          key: ccache-metal-${{ needs.check.outputs.sha }}
+          restore-keys: ccache-metal-
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_RPATH='@loader_path' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DGGML_METAL=ON \
+            -DGGML_NATIVE=OFF \
+            -DGGML_RPC=ON \
+            -DLLAMA_BUILD_TESTS=OFF
+
+      - name: Build
+        run: |
+          cmake --build build -j "$(sysctl -n hw.ncpu)" 2>&1 | tee build.log
+          grep -q "UI: embedded" build.log || { echo "::error::Web UI not included"; exit 1; }
+
+      - name: Pack
+        run: |
+          cp LICENSE build/bin/
+          git rev-parse HEAD > build/bin/COMMIT
+          tar -czf llama-macos-metal-arm64-${{ needs.check.outputs.short }}.tar.gz -C build/bin .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-metal
+          path: llama-macos-metal-arm64-*.tar.gz
+          retention-days: 3
+
+  publish:
+    needs: [check, linux-cuda, macos-metal]
+    # Release it as soon as it compiles successfully on at least one platform.
+    if: always() && needs.check.outputs.changed == 'true' && (needs.linux-cuda.result == 'success' || needs.macos-metal.result == 'success')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA:   ${{ needs.check.outputs.sha }}
+          SHORT: ${{ needs.check.outputs.short }}
+        run: |
+          ls -lh dist
+          gh release create "nightly-$SHORT" dist/*.tar.gz \
+            -R "$GITHUB_REPOSITORY" \
+            --title "llama.cpp nightly $SHORT" \
+            --notes "Upstream: https://github.com/$UPSTREAM/commit/$SHA" \
+            --latest
+
+      - name: Prune old releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
+            --jq 'map(select(.tagName | startswith("nightly-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
+          | while read -r tag; do
+              gh release delete "$tag" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag
+            done
