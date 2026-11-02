@@ -13,15 +13,33 @@ name: Build OpenWrt Firwmare
 on:
   # push:
   repository_dispatch:
-  workflow_dispatch:
   schedule:
     - cron: 1 20 * * *
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Recompile even if there are no new commits upstream'
+        type: boolean
+        default: false
+      ref:
+        description: 'target branch'
+        default: 'main'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-openwrt
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
 
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: main
   FEEDS_CONF: feeds.conf.default
-  CONFIG_Y1S_FILE: openwrt_y1s.config
   CONFIG_GEHUA_FILE: openwrt_mt7621-gehua-ghl-r-001.config
   CONFIG_XIAOMI_FILE: openwrt_xiaomi-ax3000t-rd03.config
   UPLOAD_BIN_DIR: false
@@ -30,146 +48,9 @@ env:
   TZ: Asia/Shanghai
 
 jobs:
-  build_y1s:
-    name: Build Newifi Y1S firmware
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Checkout
-      uses: actions/checkout@main
-
-    - name: Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004) tree
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
-
-    - name: Clone source code
-      working-directory: /workdir
-      run: |
-        df -hT $PWD
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-    - name: cache
-      if: github.event.inputs.cache == 'true' && github.event.inputs.cache != 'false'
-      uses: klever1988/cachewrtbuild@main
-      with:
-        ccache: 'true'
-        prefix: ${{ github.workspace }}/openwrt
-
-    - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
-
-    - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a -f
-
-    - name: Load custom configuration
-      run: |
-        [ -e files ] && mv files openwrt/files
-        [ -e $CONFIG_Y1S_FILE ] && mv $CONFIG_Y1S_FILE openwrt/.config
-        TODAY=$(date +%Y-%m-%d)
-        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' openwrt/.config"
-
-    - name: Generate configuration file
-      run: cd openwrt && make defconfig
-
-    - name: Download package
-      id: package
-      run: |
-        cd openwrt
-        make download -j16
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
-
-    - name: Compile the firmware
-      id: compile
-      run: |
-        cd openwrt
-        echo -e "compile"
-        make -j$(nproc) || make -j1 V=s
-        echo "======================="
-        echo "Space usage:"
-        echo "======================="
-        df -h
-        echo "======================="
-        echo "name=status::success" >>$GITHUB_OUTPUT
-        tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
-        DEVICE_NAME=${tdev##DEVICE_}
-        FILE_DATE=_$(date +"%Y%m%d%H%M")
-        GIT_REV=_$(git rev-parse --short HEAD)
-        echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
-        echo "FILE_DATE=${FILE_DATE}" >> $GITHUB_ENV
-        echo "GIT_REV=${GIT_REV}" >> $GITHUB_ENV
-        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${GIT_REV}${FILE_DATE}.tar.gz" >> $GITHUB_ENV
-
-    - name: Check space usage
-      run: |
-        df -hT
-        echo "tree directory ....."
-        cd openwrt
-        tree -L 2 -d
-
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.RELEASE_NAME }}
-        path: |
-          Release.txt
-          ${{ github.workspace }}/*.tar.gz
-
-    - name: Prepare artifact
-      run: |
-        TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
-        echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
-        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/ramips/mt7620/* --owner=0 --group=0
-        rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
-
-    - name: Generate release tag
-      id: tag
-      run: |
-        echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
-        echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
-        echo "name=status::success" >>$GITHUB_OUTPUT
-
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "openwrt-latest"
-        prerelease: true
-        title: "Development build of openwrt firmware package"
-        files: |
-          Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v2
-      if: github.ref_type == 'tag'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: openwrt
-        files: |
-          Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
-      if: github.ref_type == 'tag'
-      with:
-        keep_latest: 6
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build_gehua:
     name: Build GeHua firmware
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
       uses: actions/checkout@main
@@ -295,13 +176,14 @@ jobs:
 
   build_xiaomi:
     name: Build XiaoMi AX3000T rd03 firmware
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
       uses: actions/checkout@main
 
     - name: Initialization environment
       env:
+        REF: ${{ inputs.ref || 'main' }}
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc

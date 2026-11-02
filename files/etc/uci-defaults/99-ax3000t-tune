@@ -1,0 +1,48 @@
+#!/bin/sh
+# source code path ：files/etc/uci-defaults/99-ax3000t-tune
+
+uci -q batch <<'EOF'
+set firewall.@defaults[0].flow_offloading='1'
+set firewall.@defaults[0].flow_offloading_hw='1'
+set network.globals.packet_steering='1'
+set irqbalance.irqbalance.enabled='1'
+set system.@system[0].zonename='Asia/Shanghai'
+set system.@system[0].timezone='CST-8'
+set system.@system[0].zram_comp_algo='zstd'
+delete system.ntp.server
+add_list system.ntp.server='ntp.aliyun.com'
+add_list system.ntp.server='ntp.tencent.com'
+add_list system.ntp.server='cn.pool.ntp.org'
+set dhcp.@dnsmasq[0].cachesize='0'
+set dhcp.@dnsmasq[0].noresolv='1'
+set dhcp.@dnsmasq[0].localuse='1'
+delete dhcp.@dnsmasq[0].server
+add_list dhcp.@dnsmasq[0].server='127.0.0.1#6053'
+set firewall.hijack_dns=redirect
+set firewall.hijack_dns.name='Hijack-DNS'
+set firewall.hijack_dns.src='lan'
+set firewall.hijack_dns.src_dport='53'
+set firewall.hijack_dns.proto='tcp udp'
+set firewall.hijack_dns.target='DNAT'
+set firewall.hijack_dns.dest_port='53'
+
+set dhcp.@dnsmasq[0].rebind_protection='0'
+set dhcp.@dnsmasq[0].nohosts='1'
+delete dhcp.@dnsmasq[0].addnhosts
+add_list dhcp.@dnsmasq[0].addnhosts='/etc/myhosts'
+EOF
+uci commit
+
+grep -q 'wed_enable' /etc/modules.conf 2>/dev/null || \
+	echo 'options mt7915e wed_enable=Y' >> /etc/modules.conf
+
+echo 'net.ipv4.tcp_congestion_control=bbr' > /etc/sysctl.d/99-bbr.conf
+
+grep -q 'adblock reload' /etc/crontabs/root 2>/dev/null || \
+	echo '30 5 * * * /etc/init.d/adblock reload' >> /etc/crontabs/root
+
+for f in /etc/smartdns/domain-set/ /etc/adblock/adblock.allowlist; do
+	grep -qxF "$f" /etc/sysupgrade.conf 2>/dev/null || echo "$f" >> /etc/sysupgrade.conf
+done
+
+exit 0

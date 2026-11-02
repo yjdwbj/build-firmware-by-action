@@ -1,0 +1,99 @@
+
+config smartdns
+	option enabled '1'
+	option server_name 'smartdns'
+	option port '6053'
+	option auto_set_dnsmasq '1'
+	option tcp_server '1'
+	option ipv6_server '1'
+	option bind_device '1'
+	option dualstack_ip_selection '1'
+	option force_aaaa_soa '0'
+	option force_https_soa '0'
+	option prefetch_domain '1'
+	option serve_expired '1'
+	option cache_size '32768'
+	option cache_persist '1'
+	option rr_ttl_min '300'
+	option rr_ttl_reply_max '60'
+	option resolve_local_hostnames '0'
+	option speed_check_mode 'ping,tcp:443,tcp:80'
+	list conf_files '/tmp/smartdns/adb_list.overall'
+	option old_port '6053'
+	option old_enabled '1'
+	option old_auto_set_dnsmasq '1'
+
+config domain-rule
+
+config server
+	option enabled '1'
+	option name 'cmcc-1'
+	option ip '211.136.192.6'
+	option type 'udp'
+	option server_group 'cn'
+	option exclude_default_group '1'
+
+config server
+	option enabled '1'
+	option name 'cmcc-2'
+	option ip '120.196.165.24'
+	option type 'udp'
+	option server_group 'cn'
+	option exclude_default_group '1'
+
+config server
+	option enabled '1'
+	option name 'cmcc-v6-1'
+	option ip '2409:8057:2000:2::8'
+	option type 'udp'
+	option server_group 'cn'
+	option exclude_default_group '1'
+
+config server
+	option enabled '1'
+	option name 'cmcc-v6-2'
+	option ip '2409:8057:2000:6::8'
+	option type 'udp'
+	option server_group 'cn'
+	option exclude_default_group '1'
+
+config server
+	option enabled '1'
+	option name 'google-dot'
+	option ip '8.8.8.8'
+	option type 'tls'
+	option server_group 'world'
+
+config server
+	option enabled '1'
+	option name 'google-doh'
+	option ip 'https://8.8.4.4/dns-query'
+	option type 'https'
+	option server_group 'world'
+
+config server
+	option enabled '1'
+	option name 'cf-dot'
+	option ip '1.1.1.1'
+	option type 'tls'
+	option server_group 'world'
+
+config server
+	option enabled '1'
+	option name 'cf-doh'
+	option ip 'https://1.0.0.1/dns-query'
+	option type 'https'
+	option server_group 'world'
+
+config domain-rule-list
+	option enabled '1'
+	option name 'china'
+	option server_group 'cn'
+	option domain_list_file '/etc/smartdns/domain-set/china-list.txt'
+	option block_domain_type 'none'
+	option dualstack_ip_selection 'yes'
+
+config client-rule
+
+config ip-rule
+
