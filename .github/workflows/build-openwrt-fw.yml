@@ -92,7 +92,6 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
 
-
     - name: Checkout upstream
       uses: actions/checkout@v6
       with:
@@ -112,7 +111,7 @@ jobs:
 
     - name: Update feeds
       run: |
-        echo "here is my path: `pwd`"
+        echo "here is my path: `ls /workdir`"
         ./scripts/feeds update -a
 
     - name: Install feeds
@@ -131,7 +130,6 @@ jobs:
     - name: Download package
       id: package
       run: |
-        cd openwrt
         make download -j16
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -139,7 +137,6 @@ jobs:
     - name: Compile the firmware
       id: compile
       run: |
-        cd openwrt
         echo -e "compile"
         make -j$(nproc) || make -j1 V=s
         echo "======================="
@@ -240,25 +237,24 @@ jobs:
         prefix: ${{ github.workspace }}/openwrt
 
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
+      run: ./scripts/feeds update -a
 
     - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a -f
+      run: ./scripts/feeds install -a -f
 
     - name: Load custom configuration
       run: |
-        [ -e files ] && mv files openwrt/files
-        [ -e $CONFIG_XIAOMI_FILE ] && mv $CONFIG_XIAOMI_FILE openwrt/.config
+        [ -e files ] && mv files files
+        [ -e $CONFIG_XIAOMI_FILE ] && mv $CONFIG_XIAOMI_FILE .config
         TODAY=$(date +%Y-%m-%d)
-        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' openwrt/.config"
+        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' .config"
 
     - name: Generate configuration file
-      run: cd openwrt && make defconfig
+      run: make defconfig
 
     - name: Download package
       id: package
       run: |
-        cd openwrt
         make download -j16
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -283,15 +279,14 @@ jobs:
       run: |
         df -hT
         echo "tree directory ....."
-        cd openwrt
         tree -L 2 -d
 
     - name: Prepare artifact
       run: |
         TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
         echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
-        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/mediatek/filogic/* --owner=0 --group=0
-        rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
+        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} bin/targets/mediatek/filogic/* --owner=0 --group=0
+        rm -rf $(find bin/targets/ -type d -name "packages")
 
     - name: Upload firmware
       uses: actions/upload-artifact@v4
