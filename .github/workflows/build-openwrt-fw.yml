@@ -109,6 +109,11 @@ jobs:
       CCACHE_DIR: /root/.ccache
       CCACHE_MAXSIZE: 2G
     steps:
+    - name: Prepare work dir
+      run: |
+        sudo mkdir -p "$WORK_DIR" && sudo chown "$(id -u):$(id -g)" "$WORK_DIR"
+        df -h / /mnt
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
