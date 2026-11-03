@@ -37,15 +37,14 @@ defaults:
     shell: bash
 
 env:
-  REPO_URL: https://github.com/openwrt/openwrt
+  REPO_URL: https://github.com/openwrt/openwrt.git
   REPO_BRANCH: main
   FEEDS_CONF: feeds.conf.default
-  CONFIG_GEHUA_FILE: openwrt_mt7621-gehua-ghl-r-001.config
-  CONFIG_XIAOMI_FILE: openwrt_xiaomi-ax3000t-rd03.config
+  CHINA_LIST_URL: https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list@master/accelerated-domains.china.conf
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: false
-  WORK_DIR: /workdir
+  WORK_DIR: /mnt/work
   UPSTREAM: openwrt/openwrt
   TZ: Asia/Shanghai
 
@@ -54,18 +53,34 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       ref:     ${{ steps.up.outputs.ref }}
+      sha:     ${{ steps.up.outputs.sha }}
+      tag:     ${{ steps.up.outputs.tag }}
+      date:    ${{ steps.up.outputs.date }}
       changed: ${{ steps.up.outputs.changed }}
     steps:
+      - uses: actions/checkout@v6
+
       - id: up
         env:
           GH_TOKEN: ${{ github.token }}
           REF: ${{ inputs.ref || 'main' }}
           FORCE: ${{ inputs.force || false }}
         run: |
-          TAG=$(git ls-remote --tags $REPO_URL | awk -F '/' '{print $3}' | grep '^v[0-9][0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V  | tail -n1)
+          if [ -z "$REF" ] || [ "$REF" == "main" ]; then
+            REF=$(git ls-remote --tags $REPO_URL | awk -F '/' '{print $3}' | grep '^v[0-9][0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V  | tail -n1)
+          fi
+
+          SHA=$(git ls-remote --tags --refs "$REPO_URL"  "refs/tags/${REF}" | awk '{print $1}')
           echo "get latest release version $TAG"
-          [ -z "$TAG" ] && TAG="$REF"
-          echo "ref=$TAG"     >> "$GITHUB_OUTPUT"
+
+          CFG=$(git rev-parse HEAD:configs HEAD:files | sha256sum | cut -c1-7)
+          TAG="openwrt-${REF}-${CFG}"
+
+          echo "sha=$SHA"             >> "$GITHUB_OUTPUT"
+          echo "ref=$REF"             >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"             >> "$GITHUB_OUTPUT"
+          echo "date=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
           if [ "$FORCE" != "true" ] && gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "$TAG  exist, skip"
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -78,7 +93,19 @@ jobs:
     if: needs.check.outputs.changed == 'true'
     name: Build GeHua firmware
     runs-on: ubuntu-24.04
+    timeout-minutes: 360
     env:
+      DEVICE: gehua-ghl-r-001
+      CONFIG: openwrt_mt7621-gehua-ghl-r-001.config
+      TARGET: ramips/mt7621
+      CHECKS: >-
+        TARGET_ramips_mt7621_DEVICE_gehua_ghl-r-001
+        PACKAGE_wpad-mbedtls PACKAGE_luci-ssl PACKAGE_smartdns
+        PACKAGE_adblock PACKAGE_luci-app-adblock PACKAGE_gawk
+        PACKAGE_kmod-mt7603 PACKAGE_kmod-mt76x2
+        PACKAGE_kmod-usb-storage PACKAGE_block-mount
+      REF: ${{ needs.check.outputs.ref }}
+      DATE: ${{ needs.check.outputs.date }}
       CCACHE_DIR: /root/.ccache
       CCACHE_MAXSIZE: 2G
     steps:
@@ -86,246 +113,230 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004) tree
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TZ"
+        sudo apt-get install -y --no-install-recommends \
+            build-essential clang flex bison g++ gawk gcc-multilib g++-multilib \
+            gettext git libncurses-dev libssl-dev python3-setuptools rsync swig \
+            unzip zlib1g-dev file wget curl ccache
 
     - name: Checkout upstream
       uses: actions/checkout@v6
       with:
-        repository: ${{ env.UPSTREAM }}
-        ref: ${{ needs.check.outputs.ref }}
-        fetch-depth: 0
-        path: 'openwrt'
+        path: repo
 
-    - name: Git safe directory
-      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: Clone OpenWrt
+      run: git clone --depth 1 --branch "$REF" "$REPO_URL" "$WORK_DIR/openwrt"
 
-    - name: cache
-      if: github.event.inputs.cache == 'true' && github.event.inputs.cache != 'false'
-      uses: klever1988/cachewrtbuild@main
+    - name: dl cache
+      uses: actions/cache@v4
       with:
-        ccache: 'true'
-        prefix: ${{ github.workspace }}/openwrt
+        path: ${{ env.WORK_DIR }}/openwrt/dl
+        key: dl-${{ env.DEVICE }}-${{ env.REF }}-${{ github.run_id }}
+        restore-keys: dl-${{ env.DEVICE }}-${{ env.REF }}-
 
-    - name: Update feeds
+    - name: ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.WORK_DIR }}/openwrt/.ccache
+        key: ccache-${{ env.DEVICE }}-${{ env.REF }}-${{ github.run_id }}
+        restore-keys: ccache-${{ env.DEVICE }}-${{ env.REF }}-
+
+    - name: Feeds
+      working-directory: ${{ env.WORK_DIR }}/openwrt
       run: |
-        echo "here path : `ls $PWD`"
-        cd openwrt
         ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
-    - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a -f
-
-    - name: Load custom configuration
+    - name: Root overlay
+      env:
+          FILES_PRIVATE_TGZ: ${{ secrets.FILES_PRIVATE_TGZ }}
       run: |
-        [ -e files ] && mv files openwrt/
-        [ -e $CONFIG_GEHUA_FILE ] && mv $CONFIG_GEHUA_FILE openwrt/.config
-        TODAY=$(date +%Y-%m-%d)
-        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' openwrt/.config"
+          F="$WORK_DIR/openwrt/files"
+          mkdir -p "$F" && cp -a repo/files/. "$F"/
+          [ -n "$FILES_PRIVATE_TGZ" ] && echo "$FILES_PRIVATE_TGZ" | base64 -d | tar -xz -C "$F"
 
-    - name: Generate configuration file
-      run: make defconfig
+          LIST="$F/etc/smartdns/domain-set/china-list.txt"
+          mkdir -p "$(dirname "$LIST")"
+          curl -fsSL --retry 3 "$CHINA_LIST_URL" | sed -n 's|^server=/\(.*\)/.*$|\1|p' > /tmp/cl.txt || true
+          if [ "$(wc -l < /tmp/cl.txt)" -gt 10000 ]; then mv /tmp/cl.txt "$LIST"
+          else echo "::warning::china-list download failed, keep repo copy"; fi
+          [ -s "$LIST" ] || { echo "::error::china-list.txt missing"; exit 1; }
 
-    - name: Download package
-      id: package
+          grep -q localhost "$F/etc/myhosts" 2>/dev/null || \
+            printf '127.0.0.1 localhost\n::1 localhost\n' >> "$F/etc/myhosts"
+          chmod 755 "$F"/etc/uci-defaults/* 2>/dev/null || true
+          find "$F" -type f | sort
+
+    - name: .config
+      working-directory: ${{ env.WORK_DIR }}/openwrt
       run: |
-        cd openwrt
-        make download -j16
-        find dl -size -1024c -exec ls -l {} \;
+          cp "$GITHUB_WORKSPACE/repo/$CONFIG" .config
+          echo 'CONFIG_CCACHE=y' >> .config
+          make defconfig
+          fail=0
+          for o in $CHECKS; do
+            grep -q "^CONFIG_${o}=y" .config && echo "OK  $o" || { echo "::error::missing CONFIG_${o}=y"; fail=1; }
+          done
+          for p in cloudflared sing-box tailscale perl; do
+            grep -q "^CONFIG_PACKAGE_${p}=y" .config && { echo "::error::$p must not be built in"; fail=1; }
+          done
+          exit $fail
+
+    - name: Download
+      working-directory: ${{ env.WORK_DIR }}/openwrt
+      run: |
+        make download -j8 || make download -j1 V=s
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: Compile the firmware
-      id: compile
+    - name: Build
+      working-directory: ${{ env.WORK_DIR }}/openwrt
+      run: make -j"$(nproc)" || make -j1 V=s
+
+    - name: Package
       run: |
-        cd openwrt
-        echo -e "compile"
-        make -j$(nproc) || make -j1 V=s
-        echo "======================="
-        echo "Space usage:"
-        echo "======================="
+          NAME="openwrt-${REF}-${DEVICE}-${DATE}"
+          OUT="$WORK_DIR/out/$NAME"; mkdir -p "$OUT"
+          find "$WORK_DIR/openwrt/bin/targets/$TARGET" -maxdepth 1 -type f \
+            \( -name '*sysupgrade*' -o -name '*factory*' -o -name '*initramfs*' \
+               -o -name '*.manifest' -o -name 'sha256sums' \) -exec cp {} "$OUT"/ \;
+          cp "$WORK_DIR/openwrt/.config" "$OUT/$DEVICE.config"
+          (cd "$WORK_DIR/openwrt" && ./scripts/diffconfig.sh) > "$OUT/$DEVICE.diffconfig"
+          if grep -iqE '^(perl|python3|cloudflared|sing-box) ' "$OUT"/*.manifest; then
+            echo "::error::unexpected package in manifest"; exit 1
+          fi
+          mkdir -p dist
+          tar -czf "dist/$NAME.tar.gz" -C "$WORK_DIR/out" "$NAME"
+          (cd dist && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256")
+          ls -lh dist "$OUT"
 
-        echo "name=status::success" >>$GITHUB_OUTPUT
-        tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
-        DEVICE_NAME=${tdev##DEVICE_}
-        FILE_DATE=_$(date +"%Y%m%d%H%M")
-        GIT_REV=_$(git rev-parse --short HEAD)
-        echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
-        echo "FILE_DATE=${FILE_DATE}" >> $GITHUB_ENV
-        echo "GIT_REV=${GIT_REV}" >> $GITHUB_ENV
-        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${GIT_REV}${FILE_DATE}.tar.gz" >> $GITHUB_ENV
-
-    - name: Check space usage
-      run: |
-        cd openwrt
-        df -hT
-        echo "tree directory ....."
-        tree -L 2 -d
-
-    - name: Prepare artifact
-      run: |
-        TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
-        echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
-        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}}openwrt/bin/targets/ramips/mt7621/* --owner=0 --group=0
-        rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
-
-    - name: Generate release tag
-      id: tag
-      run: |
-        echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
-        echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
-        echo "name=status::success" >>$GITHUB_OUTPUT
-
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
-        name: "openwrt-latest"
-        path: |
-          ${{ github.workspace }}/*.tar.gz
-          Release.txt
+        name: ${{ env.DEVICE }}
+        path: dist/*
+        retention-days: 7
 
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "openwrt-latest"
-        prerelease: true
-        title: "Development build of openwrt firmware package"
-        files: |
-          Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v2
-      if: github.ref_type == 'tag'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: OpenWrt-GeHua
-        files: |
-          Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
   build_xiaomi:
     needs: check
     if: needs.check.outputs.changed == 'true'
     name: Build XiaoMi AX3000T rd03 firmware
+    timeout-minutes: 360
+    env:
+      CONFIG: openwrt_xiaomi-ax3000t-rd03.config
+      TARGET: mediatek/filogic
+      DEVICE: ax3000t
+      REF: ${{ needs.check.outputs.ref }}
+      DATE: ${{ needs.check.outputs.date }}
     runs-on: ubuntu-24.04
     steps:
+    - name: Prepare work dir
+      run: |
+        sudo mkdir -p "$WORK_DIR" && sudo chown "$(id -u):$(id -g)" "$WORK_DIR"
+        df -h / /mnt
+
     - name: Initialization environment
       env:
-        REF: ${{ inputs.ref || 'main' }}
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004) tree
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TZ"
+        sudo apt-get install -y --no-install-recommends \
+            build-essential clang flex bison g++ gawk gcc-multilib g++-multilib \
+            gettext git libncurses-dev libssl-dev python3-setuptools rsync swig \
+            unzip zlib1g-dev file wget curl ccache
 
     - name: Checkout upstream
       uses: actions/checkout@v6
       with:
-        repository: ${{ env.UPSTREAM }}
-        ref: ${{ needs.check.outputs.ref }}
-        fetch-depth: 0
+        path: repo
 
-    - name: Git safe directory
-      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: Clone OpenWrt
+      run: git clone --depth 1 --branch "$REF" "$REPO_URL" "$WORK_DIR/openwrt"
 
-    - name: cache
-      if: github.event.inputs.cache == 'true' && github.event.inputs.cache != 'false'
-      uses: klever1988/cachewrtbuild@main
+    - name: dl cache
+      uses: actions/cache@v4
       with:
-        ccache: 'true'
-        prefix: ${{ github.workspace }}/openwrt
+        path: ${{ env.WORK_DIR }}/openwrt/dl
+        key: dl-${{ env.DEVICE }}-${{ env.REF }}-${{ github.run_id }}
+        restore-keys: dl-${{ env.DEVICE }}-${{ env.REF }}-
 
-    - name: Update feeds
-      run: ./scripts/feeds update -a
+    - name: ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.WORK_DIR }}/openwrt/.ccache
+        key: ccache-${{ env.DEVICE }}-${{ env.REF }}-${{ github.run_id }}
+        restore-keys: ccache-${{ env.DEVICE }}-${{ env.REF }}-
 
-    - name: Install feeds
-      run: ./scripts/feeds install -a -f
-
-    - name: Load custom configuration
+    - name: Feeds
+      working-directory: ${{ env.WORK_DIR }}/openwrt
       run: |
-        [ -e files ] && mv files files
-        [ -e $CONFIG_XIAOMI_FILE ] && mv $CONFIG_XIAOMI_FILE .config
-        TODAY=$(date +%Y-%m-%d)
-        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' .config"
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
-    - name: Generate configuration file
-      run: make defconfig
-
-    - name: Download package
-      id: package
+    - name: Root overlay
+      env:
+          FILES_PRIVATE_TGZ: ${{ secrets.FILES_PRIVATE_TGZ }}
       run: |
-        make download -j16
-        find dl -size -1024c -exec ls -l {} \;
+          F="$WORK_DIR/openwrt/files"
+          mkdir -p "$F" && cp -a repo/files/. "$F"/
+          [ -n "$FILES_PRIVATE_TGZ" ] && echo "$FILES_PRIVATE_TGZ" | base64 -d | tar -xz -C "$F"
+
+          LIST="$F/etc/smartdns/domain-set/china-list.txt"
+          mkdir -p "$(dirname "$LIST")"
+          curl -fsSL --retry 3 "$CHINA_LIST_URL" | sed -n 's|^server=/\(.*\)/.*$|\1|p' > /tmp/cl.txt || true
+          if [ "$(wc -l < /tmp/cl.txt)" -gt 10000 ]; then mv /tmp/cl.txt "$LIST"
+          else echo "::warning::china-list download failed, keep repo copy"; fi
+          [ -s "$LIST" ] || { echo "::error::china-list.txt missing"; exit 1; }
+
+          grep -q localhost "$F/etc/myhosts" 2>/dev/null || \
+            printf '127.0.0.1 localhost\n::1 localhost\n' >> "$F/etc/myhosts"
+          chmod 755 "$F"/etc/uci-defaults/* 2>/dev/null || true
+          find "$F" -type f | sort
+
+    - name: .config
+      working-directory: ${{ env.WORK_DIR }}/openwrt
+      run: |
+          cp "$GITHUB_WORKSPACE/repo/$CONFIG" .config
+          echo 'CONFIG_CCACHE=y' >> .config
+          make defconfig
+          fail=0
+          for o in $CHECKS; do
+            grep -q "^CONFIG_${o}=y" .config && echo "OK  $o" || { echo "::error::missing CONFIG_${o}=y"; fail=1; }
+          done
+          for p in cloudflared sing-box tailscale perl; do
+            grep -q "^CONFIG_PACKAGE_${p}=y" .config && { echo "::error::$p must not be built in"; fail=1; }
+          done
+          exit $fail
+
+    - name: Download
+      working-directory: ${{ env.WORK_DIR }}/openwrt
+      run: |
+        make download -j8 || make download -j1 V=s
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: Compile the firmware
-      id: compile
-      run: |
-        cd openwrt
-        echo -e "compile"
-        make -j$(nproc) || make -j1 V=s
-        echo "name=status::success" >>$GITHUB_OUTPUT
-        tdev=$(grep "CONFIG_TARGET_PROFILE" .config | awk -F= '{print $2}' | tr -d '"')
-        DEVICE_NAME=${tdev##DEVICE_}
-        FILE_DATE=_$(date +"%Y%m%d%H%M")
-        GIT_REV=_$(git rev-parse --short HEAD)
-        echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
-        echo "FILE_DATE=${FILE_DATE}" >> $GITHUB_ENV
-        echo "GIT_REV=${GIT_REV}" >> $GITHUB_ENV
-        echo "RELEASE_NAME=OpenWrt_firmware_${DEVICE_NAME}${GIT_REV}${FILE_DATE}.tar.gz" >> $GITHUB_ENV
+    - name: Build
+      working-directory: ${{ env.WORK_DIR }}/openwrt
+      run: make -j"$(nproc)" || make -j1 V=s
 
-    - name: Check space usage
+    - name: Package
       run: |
-        df -hT
-        echo "tree directory ....."
-        tree -L 2 -d
+          NAME="openwrt-${REF}-${DEVICE}-${DATE}"
+          OUT="$WORK_DIR/out/$NAME"; mkdir -p "$OUT"
+          find "$WORK_DIR/openwrt/bin/targets/$TARGET" -maxdepth 1 -type f \
+            \( -name '*sysupgrade*' -o -name '*factory*' -o -name '*initramfs*' \
+               -o -name '*.manifest' -o -name 'sha256sums' \) -exec cp {} "$OUT"/ \;
+          cp "$WORK_DIR/openwrt/.config" "$OUT/$DEVICE.config"
+          (cd "$WORK_DIR/openwrt" && ./scripts/diffconfig.sh) > "$OUT/$DEVICE.diffconfig"
+          if grep -iqE '^(perl|python3|cloudflared|sing-box) ' "$OUT"/*.manifest; then
+            echo "::error::unexpected package in manifest"; exit 1
+          fi
+          mkdir -p dist
+          tar -czf "dist/$NAME.tar.gz" -C "$WORK_DIR/out" "$NAME"
+          (cd dist && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256")
+          ls -lh dist "$OUT"
 
-    - name: Prepare artifact
-      run: |
-        TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
-        echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
-        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} bin/targets/mediatek/filogic/* --owner=0 --group=0
-        rm -rf $(find bin/targets/ -type d -name "packages")
-
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.RELEASE_NAME }}
-        path: ${{ github.workspace }}/*.tar.gz
+        name: ${{ env.DEVICE }}
+        path: dist/*
+        retention-days: 7
 
-
-    - name: Generate release tag
-      id: tag
-      run: |
-        echo "name=release_tag::$(date +%Y.%m.%d-%H%M)" >>$GITHUB_OUTPUT
-        echo "OpenWRT firmware ${{env.RELEASE_NAME}}" > Release.txt
-        echo "name=status::success" >>$GITHUB_OUTPUT
-
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "openwrt-latest"
-        prerelease: true
-        title: "Development build of openwrt firmware package"
-        files: |
-          Release.txt
-          ${{ github.workspace }}/*.tar.gz
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v2
-      if: github.ref_type == 'tag'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: OpenWrt-XiaoMi-AX3000T-rd03
-        files: |
-          Release.txt
-          ${{ github.workspace }}/${{env.RELEASE_NAME}}
