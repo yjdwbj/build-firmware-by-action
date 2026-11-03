@@ -71,9 +71,9 @@ jobs:
           fi
 
           SHA=$(git ls-remote --tags --refs "$REPO_URL"  "refs/tags/${REF}" | awk '{print $1}')
-          echo "get latest release version $TAG"
+          echo "get latest release version $REF and sha $SHA"
 
-          CFG=$(git rev-parse HEAD:configs HEAD:files | sha256sum | cut -c1-7)
+          CFG=$(git rev-parse HEAD:files | sha256sum | cut -c1-7)
           TAG="openwrt-${REF}-${CFG}"
 
           echo "sha=$SHA"             >> "$GITHUB_OUTPUT"
