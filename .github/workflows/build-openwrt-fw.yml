@@ -77,6 +77,9 @@ jobs:
     needs: check
     name: Build GeHua firmware
     runs-on: ubuntu-24.04
+    env:
+      CCACHE_DIR: /root/.ccache
+      CCACHE_MAXSIZE: 2G
     steps:
     - name: Initialization environment
       env:
@@ -108,20 +111,22 @@ jobs:
         prefix: ${{ github.workspace }}/openwrt
 
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
+      run: |
+        echo "here is my path: `pwd`"
+        ./scripts/feeds update -a
 
     - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a -f
+      run: ./scripts/feeds install -a -f
 
     - name: Load custom configuration
       run: |
-        [ -e files ] && mv files openwrt/files
-        [ -e $CONFIG_GEHUA_FILE ] && mv $CONFIG_GEHUA_FILE openwrt/.config
+        [ -e files ] && mv files .
+        [ -e $CONFIG_GEHUA_FILE ] && mv $CONFIG_GEHUA_FILE .config
         TODAY=$(date +%Y-%m-%d)
-        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' openwrt/.config"
+        sh -c "sed -i -e 's/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"${TODAY}\"/' .config"
 
     - name: Generate configuration file
-      run: cd openwrt && make defconfig
+      run: make defconfig
 
     - name: Download package
       id: package
@@ -155,15 +160,14 @@ jobs:
       run: |
         df -hT
         echo "tree directory ....."
-        cd openwrt
         tree -L 2 -d
 
     - name: Prepare artifact
       run: |
         TEMP=$(date +"OpenWrt_${{ env.DEVICE_NAME }}_%Y%m%d_%H%M%S_")$(git rev-parse --short HEAD)
         echo "RELEASE_TAG=$TEMP" >> $GITHUB_ENV
-        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}} openwrt/bin/targets/ramips/mt7621/* --owner=0 --group=0
-        rm -rf $(find openwrt/bin/targets/ -type d -name "packages")
+        tar -cvzf ${{ github.workspace }}/${{env.RELEASE_NAME}}bin/targets/ramips/mt7621/* --owner=0 --group=0
+        rm -rf $(find bin/targets/ -type d -name "packages")
 
     - name: Generate release tag
       id: tag
