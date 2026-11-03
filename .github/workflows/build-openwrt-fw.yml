@@ -45,16 +45,37 @@ env:
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: false
+  UPSTREAM: openwrt/openwrt
   TZ: Asia/Shanghai
 
 jobs:
+  check:
+    runs-on: ubuntu-24.04
+    outputs:
+      ref:     ${{ steps.up.outputs.ref }}
+      changed: ${{ steps.up.outputs.changed }}
+    steps:
+      - id: up
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.ref || 'main' }}
+          FORCE: ${{ inputs.force || false }}
+        run: |
+          TAG=$(git ls-remote --tags $REPO_URL | awk -F '/' '{print $3}' | grep '^v[0-9][0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V  | tail -n1)
+          [ -z "$TAG" ] && TAG="$REF"
+          echo "sha=$TAG"     >> "$GITHUB_OUTPUT"
+          if [ "$FORCE" != "true" ] && gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "$TAG  exist, skip"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true"  >> "$GITHUB_OUTPUT"
+          fi
+
   build_gehua:
+    needs: check
     name: Build GeHua firmware
     runs-on: ubuntu-24.04
     steps:
-    - name: Checkout
-      uses: actions/checkout@main
-
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -68,10 +89,15 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
-    - name: Clone source code
-      run: |
-        df -hT $PWD
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
+    - name: Checkout upstream
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ env.UPSTREAM }}
+        ref: ${{ needs.check.outputs.ref }}
+        fetch-depth: 0
+
+    - name: Git safe directory
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: cache
       if: github.event.inputs.cache == 'true' && github.event.inputs.cache != 'false'
@@ -175,12 +201,10 @@ jobs:
           ${{ github.workspace }}/${{env.RELEASE_NAME}}
 
   build_xiaomi:
+    needs: check
     name: Build XiaoMi AX3000T rd03 firmware
     runs-on: ubuntu-24.04
     steps:
-    - name: Checkout
-      uses: actions/checkout@main
-
     - name: Initialization environment
       env:
         REF: ${{ inputs.ref || 'main' }}
@@ -195,10 +219,15 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
-    - name: Clone source code
-      run: |
-        df -hT $PWD
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
+    - name: Checkout upstream
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ env.UPSTREAM }}
+        ref: ${{ needs.check.outputs.ref }}
+        fetch-depth: 0
+
+    - name: Git safe directory
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: cache
       if: github.event.inputs.cache == 'true' && github.event.inputs.cache != 'false'
