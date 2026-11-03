@@ -75,6 +75,7 @@ jobs:
 
   build_gehua:
     needs: check
+    if: needs.check.outputs.changed == 'true'
     name: Build GeHua firmware
     runs-on: ubuntu-24.04
     env:
@@ -111,7 +112,8 @@ jobs:
 
     - name: Update feeds
       run: |
-        echo "here is my path: `ls /workdir`"
+        ls $PWD
+        tree -L 2 -d /
         ./scripts/feeds update -a
 
     - name: Install feeds
@@ -204,6 +206,7 @@ jobs:
 
   build_xiaomi:
     needs: check
+    if: needs.check.outputs.changed == 'true'
     name: Build XiaoMi AX3000T rd03 firmware
     runs-on: ubuntu-24.04
     steps:
