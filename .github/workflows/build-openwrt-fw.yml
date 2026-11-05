@@ -378,7 +378,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
-            --jq 'map(select(.tagName | startswith("nightly-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
+            --jq 'map(select(.tagName | startswith("openwrt-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
           | while read -r tag; do
               gh release delete "$tag" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag
             done
