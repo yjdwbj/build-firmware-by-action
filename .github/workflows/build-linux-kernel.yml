@@ -85,7 +85,7 @@ jobs:
 
           mkdir -p ${KER_INSTALL_DIR}/boot
 
-          [ -e $CONFIG_R3700X_FILE ] && mv $CONFIG_R3700X_FILE ${KER_BUILD_DIR}/.config
+          [ -e $CONFIG ] && mv $CONFIG ${KER_BUILD_DIR}/.config
           cd ${KER_BUILD_DIR}
 
           make olddefconfig
@@ -189,7 +189,7 @@ jobs:
 
           mkdir -p ${KER_INSTALL_DIR}/boot
 
-          [ -e $CONFIG_N100_FILE ] && mv $CONFIG_N100_FILE ${KER_BUILD_DIR}/.config
+          [ -e $CONFIG ] && mv $CONFIG ${KER_BUILD_DIR}/.config
           cd ${KER_BUILD_DIR}
 
           make olddefconfig
@@ -293,7 +293,7 @@ jobs:
 
           mkdir -p ${KER_INSTALL_DIR}/boot
 
-          [ -e $CONFIG_A8APU_FILE ] && mv $CONFIG_A8APU_FILE ${KER_BUILD_DIR}/.config
+          [ -e $CONFIG ] && mv $CONFIG ${KER_BUILD_DIR}/.config
           cd ${KER_BUILD_DIR}
 
           make olddefconfig
@@ -342,7 +342,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: dist
+          path: ${{ github.workspace }}
           merge-multiple: true
 
       - name: Create or update release
@@ -351,11 +351,11 @@ jobs:
           SHA:   ${{ needs.check.outputs.sha }}
           TAG:   ${{ needs.check.outputs.tag }}
         run: |
-          ls -lh dist
+          ls -lh ./
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.deb -R "$GITHUB_REPOSITORY" --clobber
+            gh release upload "$TAG" *.deb -R "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$TAG" dist/*.deb \
+            gh release create "$TAG" *.deb \
               -R "$GITHUB_REPOSITORY" \
               --title "Main stream linux kernel build $TAG" \
               --notes "Upstream: https://github.com/$UPSTREAM/commit/$SHA" \
