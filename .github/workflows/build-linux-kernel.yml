@@ -12,11 +12,7 @@ on:
 
 env:
   REPO_BRANCH: main
-  CONFIG_R3700X_FILE: kernel_config_ryzen7_3700x.config
-  CONFIG_A8_APU_FILE: kernel_config_7410apu.config
   CONFIG_INTEL_FILE: kernel_config_intel.config
-  CONFIG_N100_FILE: kernel_config_n100.config
-  CONFIG_A8APU_FILE: kerne_config_a8_7410.config
   KERNEL_GIT: "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git"
   WORK_DIR: /workdir
   TZ: Asia/Shanghai
@@ -28,6 +24,10 @@ jobs:
     name: Build Linux kernel for AMD CPU R3700X with B550M
     # The type of runner that the job will run on
     runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      CONFIG: kernel_config_ryzen7_3700x.config
+      CPU_NAME: r3700x
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -121,36 +121,20 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: kernel-${{ env.LOCALVERSION }}
+          name: kernel-${{env.CPU_NAME}} ${{ env.LOCALVERSION }}
           path: |
-            Release.txt
             ${{ github.workspace }}/*.deb
-
-      - name: Upload firmware to release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: x86_64-kernel-amd
-          files: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
-
-      - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@v0.1.0
-        if: steps.tag.outputs.status == 'success'
-        with:
-          keep_latest: 6
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 7
 
   # This workflow contains a single job called "build"
   build_N100_kernel:
     name: Build Linux kernel for Intel N100 Mini PC CPU
     # The type of runner that the job will run on
     runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      CONFIG: kernel_config_n100.config
+      CPU_NAME: n100
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -241,37 +225,20 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: pc-kernel-${{ env.LOCALVERSION }}
+          name: kernel-${{env.CPU_NAME}} ${{ env.LOCALVERSION }}
           path: |
-            Release.txt
             ${{ github.workspace }}/*.deb
-
-
-      - name: Upload firmware to release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: x86_64-kernel-intel
-          files: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
-
-      - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@v0.1.0
-        if: steps.tag.outputs.status == 'success'
-        with:
-          keep_latest: 6
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 7
 
   # This workflow contains a single job called "build"
   build_A8_7410_kernel:
     name: Build Linux kernel for AMD A8-7410 APU with AMD Radeon R5 Graphics
     # The type of runner that the job will run on
     runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      CPU_NAME: apu7410
+      CONFIG: kernel_config_7410apu.config
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -362,30 +329,47 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: pc-kernel-${{ env.LOCALVERSION }}
+          name: kernel-${{env.CPU_NAME}} ${{ env.LOCALVERSION }}
           path: |
-            Release.txt
             ${{ github.workspace }}/*.deb
+          retention-days: 7
 
-
-      - name: Upload firmware to release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish:
+    needs: [build_A8_7410_kernel, build_N100_kernel, build_amd_kernel]
+    # Release it as soon as it compiles successfully on at least one platform.
+    if: always() && (needs.build_A8_7410_kernel.result == 'success' || needs.build_N100_kernel.result == 'success' || needs.build_amd_kernel.result == 'success' )
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          tag_name: x86_64-kernel-intel
-          files: |
-            Release.txt
-            ${{ github.workspace }}/*.deb
+          path: dist
+          merge-multiple: true
 
-      - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@v0.1.0
-        if: steps.tag.outputs.status == 'success'
-        with:
-          keep_latest: 6
-          delete_tags: true
+      - name: Create or update release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          SHA:   ${{ needs.check.outputs.sha }}
+          TAG:   ${{ needs.check.outputs.tag }}
+        run: |
+          ls -lh dist
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.deb -R "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" dist/*.deb \
+              -R "$GITHUB_REPOSITORY" \
+              --title "Main stream linux kernel build $TAG" \
+              --notes "Upstream: https://github.com/$UPSTREAM/commit/$SHA" \
+              --latest
+          fi
+
+      - name: Prune old releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
+            --jq 'map(select(.tagName | startswith("kernel-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
+          | while read -r tag; do
+              gh release delete "$tag" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag
+            done
 
 
