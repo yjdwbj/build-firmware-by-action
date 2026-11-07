@@ -46,6 +46,7 @@ env:
   UPLOAD_RELEASE: false
   WORK_DIR: /mnt/work
   UPSTREAM: openwrt/openwrt
+  KEEP_RELEASES: 7
   TZ: Asia/Shanghai
 
 jobs:
@@ -74,7 +75,7 @@ jobs:
           echo "get latest release version $REF and sha $SHA"
 
           CFG=$(git rev-parse HEAD:files | sha256sum | cut -c1-7)
-          TAG="openwrt-${REF}-${CFG}"
+          TAG="OpenWrt-${REF}-${CFG}"
 
           echo "sha=$SHA"             >> "$GITHUB_OUTPUT"
           echo "ref=$REF"             >> "$GITHUB_OUTPUT"
@@ -378,7 +379,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
-            --jq 'map(select(.tagName | startswith("openwrt-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
+            --jq 'map(select(.tagName | startswith("OpenWrt-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
           | while read -r tag; do
               gh release delete "$tag" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag
             done

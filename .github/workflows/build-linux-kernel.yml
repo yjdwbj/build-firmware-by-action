@@ -16,6 +16,7 @@ env:
   KERNEL_GIT: "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git"
   WORK_DIR: /workdir
   TZ: Asia/Shanghai
+  KEEP_RELEASES: 7
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -352,6 +353,8 @@ jobs:
           TAG:   ${{ needs.check.outputs.tag }}
         run: |
           ls -lh ./
+          tag=$(git ls-remote --tags $KERNEL_GIT | awk -F '/' '{print $3}' | grep '^v[0-9].[0-9]\{1,2\}.[0-9]\{1,2\}$' | sort -V | tail -n1)
+          TAG=linux-kernel-lcy-$tag
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" *.deb -R "$GITHUB_REPOSITORY" --clobber
           else
@@ -367,7 +370,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
-            --jq 'map(select(.tagName | startswith("kernel-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
+            --jq 'map(select(.tagName | startswith("linux-kernel-lcy-"))) | sort_by(.createdAt) | reverse | .['"$KEEP_RELEASES"':][] | .tagName' \
           | while read -r tag; do
               gh release delete "$tag" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag
             done
