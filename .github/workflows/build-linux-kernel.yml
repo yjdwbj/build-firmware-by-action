@@ -239,7 +239,7 @@ jobs:
     timeout-minutes: 360
     env:
       CPU_NAME: apu7410
-      CONFIG: kernel_config_7410apu.config
+      CONFIG: kernel_config_a8_7410.config
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
