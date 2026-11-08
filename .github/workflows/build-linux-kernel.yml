@@ -283,8 +283,8 @@ jobs:
           KER_FNAME="linux-${{ env.F_VER }}"
           KER_INSTALL_DIR=${LOCALVERSION}/install
           KER_BUILD_DIR=${KER_FNAME}
-          KERNEL_PKG=kernel-intel-${LOCALVERSION}.tar.gz2
-          echo "KERNEL_PKG=kernel-intel-${LOCALVERSION}.tar.gz2" >> $GITHUB_ENV
+          KERNEL_PKG=kernel-a8-7410-${LOCALVERSION}.tar.gz2
+          echo "KERNEL_PKG=kernel-a8-7410-${LOCALVERSION}.tar.gz2" >> $GITHUB_ENV
 
           MAKE_OPTS="-j`nproc` \
                      LOCALVERSION=${LOCALVERSION} \
@@ -306,7 +306,7 @@ jobs:
 
           sed -i '/^CONFIG_SYSTEM_TRUSTED_KEY/s/=.*/=""/' .config
           make prepare
-          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-a8 KCFLAGS="-march=btver2 -mtune=btver2"
+          make bindeb-pkg -j `nproc` LOCALVERSION=${LOCALVERSION}-a8 KDEB_PKG_NO_DBG_SYMBOLS=1  KCFLAGS="-march=btver2 -mtune=btver2"
           echo "output kernel file ${KERNEL_PKG}"
           cd ${{ github.workspace }}/
           wget -c "https://cdn.kernel.org/pub/linux/kernel/${M_VER}/ChangeLog-${{ env.F_VER }}"
