@@ -1,0 +1,30 @@
+#!/bin/sh
+# Generate guest cards via command line (for the web-based version, visit http://<router LAN address>/cgi-bin/guest)
+# Usage: guest-card [validity in hours, default: 4] [number of cards, default: 1]
+
+. /usr/lib/guest/lib.sh
+
+HOURS=${1:-4}
+COUNT=${2:-1}
+case "$HOURS$COUNT" in
+	''|*[!0-9]*) echo "用法：guest-card [小时] [张数]"; exit 1 ;;
+esac
+[ "$HOURS" -ge 1 ] && [ "$COUNT" -ge 1 ] || { echo "小时数和张数都要 ≥1"; exit 1; }
+[ -n "$(guest_ssid)" ] && [ -n "$(guest_key)" ] || { echo "未找到 Guest Wi-Fi 配置"; exit 1; }
+
+CODES=$(guest_new_codes "$HOURS" "$COUNT")
+
+mkdir -p /www/guest
+{
+	echo '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+	echo '<meta name="viewport" content="width=device-width,initial-scale=1"><title>访客上网卡</title>'
+	guest_css
+	echo '</head><body>'
+	guest_cards_html "$HOURS" $CODES
+	echo '</body></html>'
+} > /www/guest/card.html
+
+echo "Wi-Fi：$(guest_ssid)   今日密码：$(guest_key)"
+qrencode -t ANSIUTF8 -m 1 "$(guest_wifi_uri)"
+for C in $CODES; do echo "上网码：$C   （首次使用后 ${HOURS} 小时有效）"; done
+echo "打印页：http://$(uci -q get network.lan.ipaddr | cut -d/ -f1)/guest/card.html"

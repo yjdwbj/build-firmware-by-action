@@ -1,0 +1,26 @@
+#!/bin/sh
+# Clean up internet access codes: invalidate those unused 24 hours after generation;
+# delete those that have been used and have expired.
+# Executed by cron every 10 minutes.
+
+VF=/tmp/ndslog/vouchers.txt
+CF=/tmp/ndslog/vouchers.created
+UNUSED_TTL=86400
+
+[ -s "$VF" ] || exit 0
+NOW=$(date +%s)
+
+awk -F, -v now="$NOW" -v ttl="$UNUSED_TTL" -v cf="$CF" '
+BEGIN { while ((getline l < cf) > 0) { split(l, a, " "); created[a[1]] = a[2] } }
+{
+	code = $1; mins = $6 + 0; used = $7 + 0
+	if (used > 0 && now > used + mins * 60) next                      # alreay expired
+	if (used == 0 && (code in created) && now - created[code] > ttl) next   # 24h unused
+	print
+}' "$VF" > "$VF.new" && mv "$VF.new" "$VF"
+
+# The generation timestamp record retains only those codes that still exist.
+if [ -f "$CF" ]; then
+	awk -F, 'NR==FNR { keep[$1]=1; next } ($1 in keep)' "$VF" FS=' ' "$CF" > "$CF.new" \
+		&& mv "$CF.new" "$CF"
+fi

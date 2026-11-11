@@ -1,0 +1,14 @@
+#!/bin/sh
+# Rotate Guest Wi-Fi password: previously issued QR codes become invalid immediately
+# Executed daily at 04:00 via cron; can also be triggered manually to invalidate all existing QR codes immediately
+
+PW=$(tr -dc 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789' </dev/urandom | head -c 12)
+for s in guest_2g guest_5g; do
+	uci -q get wireless.$s >/dev/null && uci set wireless.$s.key="$PW"
+done
+uci commit wireless
+wifi reload
+
+# The old printouts contain outdated QR codes; please delete them to avoid distributing them by mistake.
+rm -f /www/guest/card.html
+logger -t guest "Guest Wi-Fi 密码已轮换"

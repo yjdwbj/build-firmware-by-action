@@ -1,0 +1,182 @@
+#!/bin/sh
+# Guest Network + openNDS Access Code Authentication
+# path：files/etc/uci-defaults/98-guest（chmod 755）
+
+# The wireless configuration may not have been generated yet;
+# if it cannot be generated, return a non-zero value and retry upon the next boot.
+uci -q get wireless.radio0 >/dev/null || wifi config
+uci -q get wireless.radio0 >/dev/null || exit 1
+
+PW=$(tr -dc 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789' </dev/urandom | head -c 12)
+
+# openNDS handles only IPv4; it does not distribute IPv6 addresses on the guest network,
+# as doing so would allow unauthenticated devices to bypass the access code requirement via IPv6.
+
+uci -q batch <<EOF
+set network.br_guest=device
+set network.br_guest.type='bridge'
+set network.br_guest.name='br-guest'
+set network.br_guest.bridge_empty='1'
+set network.guest=interface
+set network.guest.proto='static'
+set network.guest.device='br-guest'
+set network.guest.ipaddr='192.168.20.1'
+set network.guest.netmask='255.255.255.0'
+delete network.guest.ip6assign
+
+set wireless.guest_2g=wifi-iface
+set wireless.guest_2g.device='radio0'
+set wireless.guest_2g.mode='ap'
+set wireless.guest_2g.network='guest'
+set wireless.guest_2g.ssid='Guest'
+set wireless.guest_2g.encryption='sae-mixed'
+set wireless.guest_2g.key='$PW'
+set wireless.guest_2g.isolate='1'
+set wireless.guest_2g.bridge_isolate='1'
+set wireless.guest_2g.maxassoc='16'
+set wireless.guest_5g=wifi-iface
+set wireless.guest_5g.device='radio1'
+set wireless.guest_5g.mode='ap'
+set wireless.guest_5g.network='guest'
+set wireless.guest_5g.ssid='Guest'
+set wireless.guest_5g.encryption='sae-mixed'
+set wireless.guest_5g.key='$PW'
+set wireless.guest_5g.isolate='1'
+set wireless.guest_5g.bridge_isolate='1'
+set wireless.guest_5g.maxassoc='16'
+
+set dhcp.guest=dhcp
+set dhcp.guest.interface='guest'
+set dhcp.guest.start='100'
+set dhcp.guest.limit='150'
+set dhcp.guest.leasetime='2h'
+set dhcp.guest.dhcpv4='server'
+set dhcp.guest.ra='disabled'
+set dhcp.guest.dhcpv6='disabled'
+
+set firewall.guest=zone
+set firewall.guest.name='guest'
+delete firewall.guest.network
+add_list firewall.guest.network='guest'
+set firewall.guest.input='REJECT'
+set firewall.guest.output='ACCEPT'
+set firewall.guest.forward='REJECT'
+set firewall.guest_wan=forwarding
+set firewall.guest_wan.src='guest'
+set firewall.guest_wan.dest='wan'
+set firewall.guest_wan.family='ipv4'
+
+set firewall.guest_dns=rule
+set firewall.guest_dns.name='Guest-DNS'
+set firewall.guest_dns.src='guest'
+set firewall.guest_dns.proto='tcp udp'
+set firewall.guest_dns.dest_port='53'
+set firewall.guest_dns.limit='50/sec'
+set firewall.guest_dns.limit_burst='100'
+set firewall.guest_dns.target='ACCEPT'
+
+set firewall.guest_dhcp=rule
+set firewall.guest_dhcp.name='Guest-DHCP'
+set firewall.guest_dhcp.src='guest'
+set firewall.guest_dhcp.proto='udp'
+set firewall.guest_dhcp.dest_port='67'
+set firewall.guest_dhcp.family='ipv4'
+set firewall.guest_dhcp.target='ACCEPT'
+
+delete firewall.guest_dhcpv6
+
+delete firewall.guest_icmpv6
+
+set firewall.guest_portal=rule
+set firewall.guest_portal.name='Guest-openNDS-Portal'
+set firewall.guest_portal.src='guest'
+set firewall.guest_portal.proto='tcp'
+set firewall.guest_portal.dest_port='2050'
+set firewall.guest_portal.limit='20/sec'
+set firewall.guest_portal.limit_burst='50'
+set firewall.guest_portal.target='ACCEPT'
+
+set firewall.hijack_dns_guest=redirect
+set firewall.hijack_dns_guest.name='Hijack-DNS-Guest'
+set firewall.hijack_dns_guest.src='guest'
+set firewall.hijack_dns_guest.src_dport='53'
+set firewall.hijack_dns_guest.proto='tcp udp'
+set firewall.hijack_dns_guest.target='DNAT'
+set firewall.hijack_dns_guest.dest_port='53'
+
+set opennds.@opennds[0].enabled='1'
+set opennds.@opennds[0].gatewayinterface='br-guest'
+set opennds.@opennds[0].gatewayname='Guest WiFi'
+set opennds.@opennds[0].login_option_enabled='3'
+set opennds.@opennds[0].themespec_path='/usr/lib/opennds/theme_voucher.sh'
+EOF
+uci commit
+
+# Set the SSID of Guest-Plus for special device, and also it is isolated.
+uci -q batch <<EOF
+set network.br_guestplus=device
+set network.br_guestplus.type='bridge'
+set network.br_guestplus.name='br-guestplus'
+set network.br_guestplus.bridge_empty='1'
+
+set network.guestplus=interface
+set network.guestplus.proto='static'
+set network.guestplus.device='br-guestplus'
+set network.guestplus.ipaddr='192.168.21.1'
+set network.guestplus.netmask='255.255.255.0'
+
+set wireless.guestfix_2g=wifi-iface
+set wireless.guestfix_2g.device='radio0'
+set wireless.guestfix_2g.mode='ap'
+set wireless.guestfix_2g.network='guestplus'
+set wireless.guestfix_2g.ssid='Guest-Plus'
+set wireless.guestfix_2g.encryption='sae-mixed'
+set wireless.guestfix_2g.key='$PW'
+set wireless.guestfix_2g.isolate='1'
+set wireless.guestfix_2g.maxassoc='4'
+set wireless.guestfix_2g.disabled='0'
+
+set dhcp.guestplus=dhcp
+set dhcp.guestplus.interface='guestplus'
+set dhcp.guestplus.start='100'
+set dhcp.guestplus.limit='20'
+set dhcp.guestplus.leasetime='12h'
+set dhcp.guestplus.dhcpv4='server'
+set dhcp.guestplus.ra='disabled'
+set dhcp.guestplus.dhcpv6='disabled'
+
+add_list firewall.guest.network='guestplus'
+EOF
+
+if [ -n "$MAC" ]; then
+	MAC=$(echo "$MAC" | tr 'A-F' 'a-f')
+	uci -q batch <<EOF
+set wireless.guestfix_2g.macfilter='allow'
+add_list wireless.guestfix_2g.maclist='$MAC'
+EOF
+fi
+
+uci commit
+
+/etc/init.d/network reload; wifi reload
+/etc/init.d/firewall restart; /etc/init.d/dnsmasq restart
+
+# The Guest password is rotated daily at 04:00 (rendering the corresponding QR code invalid);
+# expired internet access codes are cleared every 10 minutes.
+grep -q 'guest-rotate' /etc/crontabs/root 2>/dev/null || \
+	echo '0 4 * * * /usr/bin/guest-rotate' >> /etc/crontabs/root
+grep -q 'guest-voucher-purge' /etc/crontabs/root 2>/dev/null || \
+	echo '*/10 * * * * /usr/bin/guest-voucher-purge' >> /etc/crontabs/root
+
+mkdir -p /www/guest
+
+T=/usr/lib/opennds/theme_voucher.sh
+if [ -f "$T" ]; then
+	sed -i -e 's/\^\[a-zA-Z0-9-\]{9}\$/^[0-9]{8}$/' \
+	       -e 's/name=\\"voucher\\" value=\\"\$voucher_code\\" required>/name=\\"voucher\\" value=\\"$voucher_code\\" inputmode=\\"numeric\\" pattern=\\"[0-9]{8}\\" maxlength=\\"8\\" autocomplete=\\"one-time-code\\" required>/' "$T"
+	grep -q '\^\[0-9\]{8}\$' "$T" || logger -t guest "theme_voucher.sh 未能改为 8 位数字校验，请检查"
+fi
+
+[ -x /usr/bin/gawk ] && ln -sf /bin/busybox /usr/bin/awk
+
+exit 0

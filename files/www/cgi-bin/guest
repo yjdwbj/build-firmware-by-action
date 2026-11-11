@@ -1,0 +1,111 @@
+#!/bin/sh
+# Guest Wi-Fi management page: http://<router LAN IP>/cgi-bin/guest
+# Accessible only from the internal network (input=REJECT in the Guest zone;
+# guests cannot connect to the router's ports 80/443)
+. /usr/lib/guest/lib.sh
+
+# Additional protection: Reject requests from visitor network segments
+case "$REMOTE_ADDR" in
+	192.168.20.*|::ffff:192.168.20.*)
+		printf 'Status: 403 Forbidden\r\nContent-Type: text/plain\r\n\r\nForbidden\n'; exit 0 ;;
+esac
+
+MSG=""; REFRESH=""; CODES=""; H=4; N=1
+
+if [ "$REQUEST_METHOD" = "POST" ]; then
+	BODY=$(head -c "${CONTENT_LENGTH:-0}" 2>/dev/null)
+	get() { echo "$BODY" | tr '&' '\n' | sed -n "s/^$1=//p" | head -n 1; }
+	case "$(get action)" in
+	card)
+		H=$(get h); N=$(get n)
+		case "$H" in 1|2|4|8|12|24|72) ;; *) H=4 ;; esac
+		case "$N" in 1|2|3|4|5|6|8|10) ;; *) N=1 ;; esac
+		CODES=$(guest_new_codes "$H" "$N")
+		MSG="已生成 ${N} 个上网码，可直接让客人扫码，或点「打印卡片」。"
+		;;
+	rotate)
+		( sleep 1; /usr/bin/guest-rotate ) >/dev/null 2>&1 &
+		MSG="正在更换 Guest Wi-Fi 密码，旧二维码已作废。页面将在 10 秒后自动刷新。"
+		REFRESH='<meta http-equiv="refresh" content="10;url=/cgi-bin/guest">'
+		;;
+	esac
+fi
+
+sel() { [ "$1" = "$2" ] && echo ' selected'; }
+
+printf 'Content-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\n\r\n'
+cat <<EOF
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>访客 Wi-Fi</title>
+${REFRESH}
+$(guest_css)
+</head><body><main>
+<h1 class="noprint">访客 Wi-Fi</h1>
+EOF
+
+[ -n "$MSG" ] && echo "<div class=\"msg noprint\">${MSG}</div>"
+
+if [ -n "$CODES" ]; then
+	echo '<section><h2 class="noprint">新上网码</h2>'
+	guest_cards_html "$H" $CODES
+	echo '<p class="noprint"><button class="primary" onclick="window.print()">打印卡片</button></p></section>'
+fi
+
+cat <<EOF
+<section class="noprint big">
+  <h2>扫码连接 Wi-Fi</h2>
+  <div class="wifi">
+    <div class="qr">$(guest_qr_svg)</div>
+    <div class="kv">
+      名称：<b>$(guest_ssid)</b><br>
+      今日密码：<b>$(guest_key)</b>
+      <p class="muted">二维码当天有效，每天 04:00 自动更换。<br>
+      连上后手机会弹出认证页，需要输入上网码才能上网。</p>
+    </div>
+  </div>
+</section>
+
+<section class="noprint">
+  <h2>生成上网码</h2>
+  <form class="row" method="post" action="/cgi-bin/guest">
+    <input type="hidden" name="action" value="card">
+    <label>有效时长
+      <select name="h">
+        <option value="1"$(sel "$H" 1)>1 小时</option>
+        <option value="2"$(sel "$H" 2)>2 小时</option>
+        <option value="4"$(sel "$H" 4)>4 小时</option>
+        <option value="8"$(sel "$H" 8)>8 小时</option>
+        <option value="12"$(sel "$H" 12)>12 小时</option>
+        <option value="24"$(sel "$H" 24)>1 天</option>
+        <option value="72"$(sel "$H" 72)>3 天</option>
+      </select></label>
+    <label>数量
+      <select name="n">
+        <option$(sel "$N" 1)>1</option><option$(sel "$N" 2)>2</option>
+        <option$(sel "$N" 3)>3</option><option$(sel "$N" 4)>4</option>
+        <option$(sel "$N" 5)>5</option><option$(sel "$N" 6)>6</option>
+        <option$(sel "$N" 8)>8</option><option$(sel "$N" 10)>10</option>
+      </select></label>
+    <button class="primary" type="submit">生成</button>
+  </form>
+  <p class="muted">时长从客人第一次输入上网码时开始计算；生成后 24 小时内没用就自动作废。</p>
+</section>
+
+<section class="noprint">
+  <h2>当前上网码</h2>
+  $(guest_list_html)
+</section>
+
+<section class="noprint">
+  <h2>立即更换 Wi-Fi 密码</h2>
+  <form method="post" action="/cgi-bin/guest"
+        onsubmit="return confirm('更换后，已经发出的二维码全部失效，正在使用 Guest 的设备会断开，需要重新扫码。确定吗？')">
+    <input type="hidden" name="action" value="rotate">
+    <button class="danger" type="submit">更换密码</button>
+  </form>
+  <p class="muted">二维码被转发出去、想马上作废时使用。不影响主网络。</p>
+</section>
+</main></body></html>
+EOF
