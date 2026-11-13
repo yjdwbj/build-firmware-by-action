@@ -30,6 +30,7 @@ header() {
 		<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
 		<link rel=\"shortcut icon\" href=\"/images/splash.jpg\" type=\"image/x-icon\">
 		<link rel=\"stylesheet\" type=\"text/css\" href=\"/splash.css\">
+		<style id=guest-mobile>html{-webkit-text-size-adjust:100%} body{font-size:18px!important;line-height:1.6} .insert{padding:12px!important;box-sizing:border-box} form{margin:12px 0} input[type=text],input[type=submit]{display:block;width:100%;box-sizing:border-box;font-size:22px!important;padding:12px!important;margin:10px 0;border-radius:10px} input[name=voucher]{text-align:center;letter-spacing:8px;font-family:monospace;font-size:30px!important} input[type=submit]{min-height:54px} input[type=checkbox]{width:26px;height:26px;vertical-align:middle;margin:0 8px 0 0} med-blue,big-red{font-size:24px!important}</style>
 		<title>$gatewayname</title>
 		</head>
 		<body>
@@ -280,7 +281,7 @@ voucher_form() {
 		<form action=\"/opennds_preauth/\" method=\"get\">
 			<input type=\"hidden\" name=\"fas\" value=\"$fas\">
 			<input type=\"checkbox\" name=\"tos\" value=\"accepted\" required> I accept the Terms of Service<br>
-			Voucher #: <input type=\"text\" name=\"voucher\" value=\"$voucher_code\" inputmode=\"numeric\" pattern=\"[0-9]{6}\" maxlength=\"6\" autocomplete=\"one-time-code\" required><br>
+			Voucher #: <input type=\"text\" name=\"voucher\" value=\"$voucher_code\" inputmode=\"numeric\" pattern=\"[0-9]{8}\" maxlength=\"8\" autocomplete=\"one-time-code\" required><br>
 			<input type=\"submit\" value=\"Connect\" >
 		</form>
 		<br>
